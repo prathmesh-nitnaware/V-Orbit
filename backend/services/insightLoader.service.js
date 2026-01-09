@@ -1,8 +1,5 @@
-import fs from "fs";
-import path from "path";
-import pdf from "pdf-parse";
-
-const BASE_DIR = path.resolve(process.cwd(), "insight-data");
+import { Storage } from "@google-cloud/storage";
+import pdfParse from "pdf-parse";
 
 export const documentsStore = {
   syllabus: [],
@@ -10,40 +7,42 @@ export const documentsStore = {
   questionBank: [],
 };
 
-async function loadFromFolder(relativePath, bucket) {
-  const folderPath = path.join(BASE_DIR, relativePath);
+export async function loadInsightDocuments() {
+  const bucketName = process.env.INSIGHT_BUCKET_NAME;
 
-  console.log(`🔍 Scanning: ${folderPath}`);
+  console.log("📦 Using Insight Bucket:", bucketName);
 
-  if (!fs.existsSync(folderPath)) {
-    console.warn(`⚠️ Folder not found: ${folderPath}`);
-    return;
+  if (!bucketName) {
+    throw new Error("❌ INSIGHT_BUCKET_NAME is missing in environment");
   }
 
-  const files = fs.readdirSync(folderPath);
+  const storage = new Storage({
+    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  });
+
+  const bucket = storage.bucket(bucketName);
+
+  console.log("📚 Loading Insight-VIT documents from GCS...");
+
+  const [files] = await bucket.getFiles();
 
   for (const file of files) {
-    if (!file.toLowerCase().endsWith(".pdf")) continue;
+    if (!file.name.endsWith(".pdf")) continue;
 
-    const fullPath = path.join(folderPath, file);
-    const buffer = fs.readFileSync(fullPath);
-    const parsed = await pdf(buffer);
+    const [buffer] = await file.download();
+    const parsed = await pdfParse(buffer);
 
-    documentsStore[bucket].push({
-      source: file,
-      text: parsed.text.replace(/\s+/g, " ").trim(),
-    });
+    const text = parsed.text || "";
+    const name = file.name.toLowerCase();
 
-    console.log(`✅ Loaded: ${file}`);
+    if (name.includes("syllabus")) {
+      documentsStore.syllabus.push({ text, source: file.name });
+    } else if (name.includes("question-paper")) {
+      documentsStore.questionPapers.push({ text, source: file.name });
+    } else {
+      documentsStore.questionBank.push({ text, source: file.name });
+    }
   }
-}
-
-export async function loadDocuments() {
-  console.log("📚 Loading Insight-VIT documents...");
-
-  await loadFromFolder("syllabus", "syllabus");
-  await loadFromFolder("question-papers", "questionPapers");
-  await loadFromFolder("question-bank", "questionBank");
 
   console.log("✅ Insight-VIT documents loaded:", {
     syllabus: documentsStore.syllabus.length,
