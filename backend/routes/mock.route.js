@@ -8,6 +8,7 @@ import {
 } from "../services/mockSession.service.js";
 import { generateInterviewQuestion } from "../services/questionGenerator.service.js";
 import { evaluateAnswer } from "../services/answerEvaluator.service.js";
+import { generateAudioUrl } from "../services/tts.service.js"; // <--- IMPORT THIS
 
 const router = express.Router();
 
@@ -16,7 +17,6 @@ router.post("/start", async (req, res) => {
   try {
     const { role, difficulty, totalQuestions, jobDescription, resumeText } = req.body;
 
-    // Create session in memory
     const session = createInterviewSession({
       role,
       difficulty,
@@ -25,7 +25,6 @@ router.post("/start", async (req, res) => {
       resumeText,
     });
 
-    // Generate Question #1
     const firstQuestion = await generateInterviewQuestion({
       role,
       difficulty,
@@ -37,10 +36,14 @@ router.post("/start", async (req, res) => {
 
     addQuestion(session.interviewId, firstQuestion);
 
+    // --- GENERATE AUDIO ---
+    const audioUrl = await generateAudioUrl(firstQuestion);
+
     res.json({
       interviewId: session.interviewId,
       questionNumber: 1,
       question: firstQuestion,
+      audioUrl: audioUrl, // <--- SEND AUDIO URL
     });
   } catch (error) {
     console.error("Start Interview Error:", error);
@@ -48,18 +51,16 @@ router.post("/start", async (req, res) => {
   }
 });
 
-// --- 2. PROCESS ANSWER (Voice Transcript comes here) ---
+// --- 2. PROCESS ANSWER ---
 router.post("/answer", async (req, res) => {
   try {
     const { interviewId, answer } = req.body;
     
-    // Retrieve session
     const session = getInterviewSession(interviewId);
     if (!session) return res.status(404).json({ error: "Session not found" });
 
     const currentQuestion = session.questions[session.questions.length - 1];
 
-    // AI Evaluation of the answer
     const feedback = await evaluateAnswer({
       role: session.role,
       difficulty: session.difficulty,
@@ -67,19 +68,16 @@ router.post("/answer", async (req, res) => {
       answer,
     });
 
-    // Save answer & feedback
     addAnswer(interviewId, answer, feedback);
 
-    // CHECK: Are we done?
     if (isInterviewComplete(interviewId)) {
       return res.json({
         isLast: true,
-        feedback: session.answers.map(a => a.feedback).join("\n\n---\n\n"), // Compile all feedback
+        feedback: session.answers.map(a => a.feedback).join("\n\n---\n\n"),
         message: "Interview Complete! Great effort.",
       });
     }
 
-    // GENERATE NEXT QUESTION
     const nextQuestion = await generateInterviewQuestion({
       role: session.role,
       difficulty: session.difficulty,
@@ -87,16 +85,20 @@ router.post("/answer", async (req, res) => {
       totalQuestions: session.totalQuestions,
       jobDescription: session.jobDescription,
       resumeText: session.resumeText,
-      previousAnswer: answer // Pass previous context for better flow
+      previousAnswer: answer 
     });
 
     addQuestion(interviewId, nextQuestion);
+
+    // --- GENERATE AUDIO FOR NEXT QUESTION ---
+    const audioUrl = await generateAudioUrl(nextQuestion);
 
     res.json({
       isLast: false,
       feedback,
       question: nextQuestion,
-      questionNumber: session.currentQuestion
+      questionNumber: session.currentQuestion,
+      audioUrl: audioUrl // <--- SEND AUDIO URL
     });
 
   } catch (error) {
