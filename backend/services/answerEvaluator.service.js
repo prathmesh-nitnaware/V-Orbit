@@ -1,37 +1,37 @@
-import { callOllama } from "./ollamaClient.js";
+import axios from "axios";
 
-export async function evaluateAnswer({
-  role,
-  difficulty,
-  question,
-  answer,
-}) {
+const OLLAMA_URL = "http://127.0.0.1:11434/api/generate";
+const MODEL_NAME = "mistral";
+
+export const evaluateAnswer = async ({ role, difficulty, question, answer }) => {
+  
   const prompt = `
-You are an interview evaluator.
+    You are evaluating a candidate's answer in a mock interview.
+    Role: ${role}
+    Difficulty: ${difficulty}
 
-Role: ${role}
-Difficulty: ${difficulty}
+    Question: "${question}"
+    Candidate Answer: "${answer}"
 
-Question:
-${question}
+    Task:
+    Provide brief, constructive feedback (max 3 sentences).
+    1. Is the answer correct?
+    2. What was good?
+    3. What could be improved?
 
-Candidate Answer:
-${answer}
-
-Give:
-1. Short feedback (2–3 lines)
-2. Score out of 10
-
-Format:
-Feedback:
-Score:
-`;
+    Output strictly plain text feedback.
+  `;
 
   try {
-    const feedback = await callOllama(prompt);
-    return feedback.trim();
-  } catch (err) {
-    console.error("❌ Answer Evaluation Failed");
-    throw new Error("Failed to evaluate answer");
+    const response = await axios.post(OLLAMA_URL, {
+      model: MODEL_NAME,
+      prompt: prompt,
+      stream: false
+    });
+
+    return response.data.response.trim();
+  } catch (error) {
+    console.error("❌ Ollama Evaluation Error:", error.message);
+    return "Feedback unavailable due to AI service connection error.";
   }
-}
+};

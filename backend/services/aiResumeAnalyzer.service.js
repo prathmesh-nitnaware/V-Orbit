@@ -1,57 +1,58 @@
-import fetch from "node-fetch";
+import axios from "axios";
 
-const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
+// Configuration
+const OLLAMA_URL = "http://127.0.0.1:11434/api/generate";
+const MODEL_NAME = "mistral"; // Change to "llama3" if you prefer
 
-export const analyzeResumeWithAI = async (resumeText, jdText) => {
+export const analyzeResumeWithOllama = async (resumeText, jdText) => {
+  
   const prompt = `
-You are an ATS resume evaluator.
+    You are an expert Application Tracking System (ATS).
+    Analyze the RESUME below against the JOB DESCRIPTION (JD).
 
-Analyze the RESUME against the JOB DESCRIPTION.
+    RESUME TEXT:
+    ${resumeText}
 
-Return ONLY valid JSON in this exact format.
-Do NOT add markdown, backticks, or explanations.
+    JOB DESCRIPTION:
+    ${jdText}
 
-{
-  "atsScore": number,
-  "jdMatchPercentage": number,
-  "missingSkills": string[],
-  "suggestions": string[]
-}
-
-RESUME:
-${resumeText}
-
-JOB DESCRIPTION:
-${jdText}
-`;
-
-  const response = await fetch(MISTRAL_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "mistral-large-latest",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2
-    })
-  });
-
-  const data = await response.json();
-
-  let content = data.choices[0].message.content;
-
-  // 🔥 CRITICAL FIX: Strip markdown fences safely
-  content = content
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
+    Return a JSON object with these exact keys:
+    {
+      "atsScore": (integer between 0-100),
+      "jdMatchPercentage": (integer between 0-100),
+      "missingSkills": ["skill1", "skill2"],
+      "suggestions": ["advice1", "advice2"]
+    }
+    
+    Do not include any explanation, only the JSON object.
+  `;
 
   try {
-    return JSON.parse(content);
-  } catch (err) {
-    console.error("AI RAW RESPONSE:", content);
-    throw new Error("AI returned invalid JSON");
+    console.log(`🤖 Sending request to Ollama (${MODEL_NAME})...`);
+    
+    const response = await axios.post(OLLAMA_URL, {
+      model: MODEL_NAME,
+      prompt: prompt,
+      stream: false,
+      format: "json" // 🟢 Forces Ollama to output valid JSON
+    });
+
+    // Ollama returns the text in response.data.response
+    const rawData = response.data.response;
+    
+    // Parse the JSON
+    const parsedData = JSON.parse(rawData);
+    return parsedData;
+
+  } catch (error) {
+    console.error("❌ Ollama Service Error:", error.message);
+    
+    // Fallback if Ollama is down or fails
+    return {
+      atsScore: 0,
+      jdMatchPercentage: 0,
+      missingSkills: ["Error connecting to local AI"],
+      suggestions: ["Please ensure Ollama is running (ollama serve)"]
+    };
   }
 };

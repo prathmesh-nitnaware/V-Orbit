@@ -1,65 +1,52 @@
 import crypto from "crypto";
 
+// In-memory store for active interviews
+// Structure: { interviewId: { role, difficulty, questions: [], answers: [], ... } }
 const sessions = new Map();
 
-/**
- * CREATE INTERVIEW SESSION
- */
-export function createInterviewSession({
-  role,
-  difficulty,
-  totalQuestions,
-  jobDescription,
-  resumeText,
-}) {
+export const createInterviewSession = ({ role, difficulty, totalQuestions, jobDescription, resumeText }) => {
   const interviewId = crypto.randomUUID();
-
+  
   const session = {
     interviewId,
     role,
     difficulty,
-    totalQuestions: Number(totalQuestions),
+    totalQuestions: parseInt(totalQuestions) || 3,
+    currentQuestion: 1,
+    questions: [], // Array of question strings
+    answers: [],   // Array of { answer, feedback } objects
     jobDescription,
     resumeText,
-    questions: [],
-    answers: [],
-    feedback: [],
-    currentQuestion: 0, // ✅ starts at 0
+    createdAt: new Date()
   };
 
   sessions.set(interviewId, session);
   return session;
-}
+};
 
-/**
- * GET SESSION
- */
-export function getInterviewSession(interviewId) {
-  return sessions.get(interviewId);
-}
-
-/**
- * ADD QUESTION
- */
-export function addQuestion(interviewId, question) {
+export const getInterviewSession = (interviewId) => {
   const session = sessions.get(interviewId);
-  session.questions.push(question);
-  session.currentQuestion += 1; // ✅ CRITICAL FIX
-}
+  if (!session) throw new Error("Session not found");
+  return session;
+};
 
-/**
- * ADD ANSWER + FEEDBACK
- */
-export function addAnswer(interviewId, answer, feedback) {
-  const session = sessions.get(interviewId);
-  session.answers.push(answer);
-  session.feedback.push(feedback);
-}
+export const addQuestion = (interviewId, questionText) => {
+  const session = getInterviewSession(interviewId);
+  session.questions.push(questionText);
+  return session;
+};
 
-/**
- * CHECK COMPLETION
- */
-export function isInterviewComplete(interviewId) {
-  const session = sessions.get(interviewId);
+export const addAnswer = (interviewId, answerText, feedbackText) => {
+  const session = getInterviewSession(interviewId);
+  session.answers.push({ answer: answerText, feedback: feedbackText });
+  
+  // Advance question counter
+  session.currentQuestion += 1;
+  return session;
+};
+
+export const isInterviewComplete = (interviewId) => {
+  const session = getInterviewSession(interviewId);
+  // If we have collected as many answers as total questions, we are done.
   return session.answers.length >= session.totalQuestions;
-}
+};

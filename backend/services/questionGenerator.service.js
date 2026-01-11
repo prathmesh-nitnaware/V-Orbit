@@ -1,30 +1,42 @@
-import { callOllama } from "./ollamaClient.js";
+import axios from "axios";
 
-export async function generateInterviewQuestion({
-  role,
-  difficulty,
-  questionNumber,
-  totalQuestions,
-}) {
+const OLLAMA_URL = "http://127.0.0.1:11434/api/generate";
+const MODEL_NAME = "mistral"; // Or "llama3"
+
+export const generateInterviewQuestion = async ({ 
+  role, 
+  difficulty, 
+  questionNumber, 
+  totalQuestions, 
+  jobDescription, 
+  resumeText 
+}) => {
+
   const prompt = `
-You are a professional technical interviewer.
+    You are a professional Technical Interviewer. 
+    Generate Question #${questionNumber} of ${totalQuestions} for a candidate applying for the role of ${role}.
+    Difficulty Level: ${difficulty}.
 
-Ask ONE ${difficulty} interview question for the role of ${role}.
-This is question ${questionNumber} of ${totalQuestions}.
-Do NOT include explanations.
-Return only the question.
-`;
+    Context (Job Description): ${jobDescription ? jobDescription.slice(0, 300) + "..." : "General Role"}
+    Context (Candidate Resume): ${resumeText ? resumeText.slice(0, 300) + "..." : "Not provided"}
+
+    Guidelines:
+    - If this is question 1, ask a relevant introductory or conceptual question.
+    - If it's a later question, dig deeper into technical problem solving.
+    - Keep the question clear, concise, and professional.
+    - OUTPUT ONLY THE QUESTION TEXT. No "Here is the question" or extra commentary.
+  `;
 
   try {
-    const question = await callOllama(prompt);
+    const response = await axios.post(OLLAMA_URL, {
+      model: MODEL_NAME,
+      prompt: prompt,
+      stream: false
+    });
 
-    if (!question || question.length < 10) {
-      throw new Error("Empty question generated");
-    }
-
-    return question.trim();
-  } catch (err) {
-    console.error("❌ Question Generation Failed:", err.message);
-    throw new Error("Failed to generate interview question");
+    return response.data.response.trim();
+  } catch (error) {
+    console.error("❌ Ollama Gen Question Error:", error.message);
+    return `Could you explain a key concept related to ${role}?`; // Fallback
   }
-}
+};
