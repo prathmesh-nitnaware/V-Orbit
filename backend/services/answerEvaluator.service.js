@@ -6,20 +6,19 @@ const MODEL_NAME = "mistral";
 export const evaluateAnswer = async ({ role, difficulty, question, answer }) => {
   
   const prompt = `
-    You are evaluating a candidate's answer in a mock interview.
+    You are evaluating a candidate's spoken answer in a live interview.
+    
     Role: ${role}
-    Difficulty: ${difficulty}
-
     Question: "${question}"
-    Candidate Answer: "${answer}"
+    Candidate's Answer (Transcribed from Voice): "${answer}"
 
     Task:
-    Provide brief, constructive feedback (max 3 sentences).
-    1. Is the answer correct?
-    2. What was good?
-    3. What could be improved?
+    Provide brief, constructive feedback (2-3 sentences).
+    - Did they answer the core of the question?
+    - Was the communication clear?
+    - Any technical corrections?
 
-    Output strictly plain text feedback.
+    Output strictly plain text feedback. Do not use Markdown or JSON.
   `;
 
   try {
@@ -30,8 +29,9 @@ export const evaluateAnswer = async ({ role, difficulty, question, answer }) => 
     });
 
     return response.data.response.trim();
+
   } catch (error) {
     console.error("❌ Ollama Evaluation Error:", error.message);
-    return "Feedback unavailable due to AI service connection error.";
+    return "Feedback unavailable due to AI service connection.";
   }
 };
