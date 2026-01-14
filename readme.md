@@ -1,7 +1,5 @@
 # 🚀 V-Orbit: The Gold Standard for Engineers
 
-![V-Orbit Banner](https://via.placeholder.com/1000x300/002147/D4AF37?text=V-Orbit+AI+Platform)
-
 > **Empowering the next generation of engineers with Hybrid AI, Real-time Analytics, and Personalized Career Acceleration.**
 
 **V-Orbit** is a comprehensive full-stack platform designed to bridge the gap between academic learning and industry requirements. By leveraging cutting-edge AI models (Gemini & Llama 3), it provides students with instant syllabus answers, realistic mock interviews, and ATS-grade resume optimization.
