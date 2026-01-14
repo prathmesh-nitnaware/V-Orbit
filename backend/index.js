@@ -19,10 +19,12 @@ dotenv.config({
 // ================================
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose"; // <--- 1. NEW: Mongoose
 
 import careerRoutes from "./routes/career.route.js";
 import insightRoutes from "./routes/insight.route.js";
 import mockRoutes from "./routes/mock.route.js";
+import authRoutes from "./routes/auth.route.js"; // <--- 2. NEW: Auth Route
 
 import { loadInsightDocuments } from "./services/insightLoader.service.js";
 
@@ -35,12 +37,20 @@ app.use(cors());
 app.use(express.json());
 
 // ================================
-// 🔍 ENV VERIFICATION (KEEP FOR DEMO)
+// 🔍 ENV VERIFICATION
 // ================================
 console.log("🔍 PORT =", process.env.PORT || 3000);
 console.log("🔍 INSIGHT_BUCKET_NAME =", process.env.INSIGHT_BUCKET_NAME);
-console.log("🔍 RESUME_BUCKET_NAME  =", process.env.RESUME_BUCKET_NAME);
-console.log("🔍 GOOGLE_CREDS loaded =", !!process.env.GOOGLE_APPLICATION_CREDENTIALS);
+console.log("🔍 MONGODB_URI =", process.env.MONGODB_URI ? "Set" : "Not Set (Using Local)");
+
+// ================================
+// 🛢️ DATABASE CONNECTION (NEW)
+// ================================
+const mongoURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/v-orbit";
+
+mongoose.connect(mongoURI)
+  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
 // ================================
 // 📚 LOAD INSIGHT-VIT DOCS (ONCE)
@@ -52,12 +62,13 @@ try {
 } catch (err) {
   console.error("❌ Insight-VIT startup failed");
   console.error(err.message);
-  process.exit(1); // Hard fail is correct here
+  // Optional: process.exit(1) if you want strict failure
 }
 
 // ================================
 // 🧠 ROUTES
 // ================================
+app.use("/api/auth", authRoutes); // <--- 3. NEW: Auth Endpoint
 app.use("/api/career", careerRoutes);
 app.use("/api/insight", insightRoutes);
 app.use("/api/mock", mockRoutes);
@@ -66,7 +77,7 @@ app.use("/api/mock", mockRoutes);
 // 🏠 HEALTH CHECK
 // ================================
 app.get("/", (req, res) => {
-  res.send("🚀 V-Orbit Backend Running (Insight-VIT + Mock-V)");
+  res.send("🚀 V-Orbit Backend Running (Auth + Insight + Mock)");
 });
 
 // ================================

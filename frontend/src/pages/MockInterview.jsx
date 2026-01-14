@@ -1,31 +1,54 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css"; 
+import { auth } from "../firebase"; // <--- 1. Import Firebase
+import { onAuthStateChanged } from "firebase/auth";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function MockInterview() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null); // User State
+
+  // --- 2. SECURITY CHECK ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        navigate("/login"); // Kick out if not logged in
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const [role, setRole] = useState("");
   const [difficulty, setDifficulty] = useState("Easy");
   const [totalQuestions, setTotalQuestions] = useState(3);
   const [jobDescription, setJobDescription] = useState("");
-  const [resumeText, setResumeText] = useState("");
+  const [resumeFile, setResumeFile] = useState(null); // CHANGED: State for File
   const [loading, setLoading] = useState(false);
 
   const startInterview = async () => {
+    if (!resumeFile) {
+      alert("Please upload your Resume PDF.");
+      return;
+    }
+
     try {
       setLoading(true);
 
+      // --- USE FORM DATA FOR FILE UPLOAD ---
+      const formData = new FormData();
+      formData.append("role", role);
+      formData.append("difficulty", difficulty);
+      formData.append("totalQuestions", totalQuestions);
+      formData.append("jobDescription", jobDescription);
+      formData.append("resume", resumeFile); // Attach the file here
+
       const res = await axios.post(
         "http://localhost:3000/api/mock/start",
-        {
-          role,
-          difficulty,
-          totalQuestions,
-          jobDescription,
-          resumeText,
-        }
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
       navigate("/mock/live", {
@@ -37,6 +60,7 @@ export default function MockInterview() {
         },
       });
     } catch (err) {
+      console.error(err);
       alert("Failed to start interview. Please check your connection.");
     } finally {
       setLoading(false);
@@ -269,7 +293,6 @@ export default function MockInterview() {
         </div>
         
         <div className="nav-menu">
-          {/* UPDATED MENU */}
           <button className="nav-btn" onClick={() => navigate("/dashboard")}>
             <span>Dashboard</span>
           </button>
@@ -289,13 +312,14 @@ export default function MockInterview() {
         </div>
         
         <div className="user-footer">
-          {/* CLICKABLE PROFILE */}
           <div className="profile-info" onClick={() => navigate('/profile')}>
             <svg width="36" height="36" viewBox="0 0 16 16" fill="#F8FAFC" className="bi bi-person-circle">
                 <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
                 <path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
             </svg>
-            <span className="small fw-bold text-white">Prathmesh</span>
+            <span className="small fw-bold text-white">
+              {user ? user.displayName?.split(" ")[0] : "Student"}
+            </span>
           </div>
           <div className="settings-icon" title="Settings">
              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
@@ -363,7 +387,9 @@ export default function MockInterview() {
 
               {/* Job Description */}
               <div className="mb-4">
-                <label className="form-label">Job Description <span className="text-muted fw-normal text-lowercase small">(optional)</span></label>
+                <label className="form-label">
+                  Job Description <span className="text-muted fw-normal text-lowercase small">(optional)</span>
+                </label>
                 <textarea
                   className="form-control"
                   rows="3"
@@ -373,16 +399,20 @@ export default function MockInterview() {
                 />
               </div>
 
-              {/* Resume Text */}
+              {/* Resume Text (CHANGED TO FILE UPLOAD) */}
               <div className="mb-4">
-                <label className="form-label">Resume Context <span className="text-muted fw-normal text-lowercase small">(optional)</span></label>
-                <textarea
-                  className="form-control"
-                  rows="3"
-                  placeholder="Paste your resume text here..."
-                  value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
+                <label className="form-label">
+                  Upload Resume (PDF) <span className="text-muted fw-normal text-lowercase small">(for tailored questions)</span>
+                </label>
+                <input 
+                  type="file" 
+                  accept=".pdf" 
+                  className="form-control" 
+                  onChange={(e) => setResumeFile(e.target.files[0])} 
                 />
+                <div className="form-text mt-2 text-muted" style={{fontSize: '0.85rem'}}>
+                  We extract your Skills and Projects to tailor the interview flow.
+                </div>
               </div>
 
               {/* Start Button */}
@@ -394,7 +424,7 @@ export default function MockInterview() {
                 {loading ? (
                   <span>
                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Initializing AI...
+                    Analyzing Resume...
                   </span>
                 ) : "Begin Interview Simulation"}
               </button>

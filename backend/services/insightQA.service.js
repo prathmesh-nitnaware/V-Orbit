@@ -1,69 +1,82 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { vectorStore } from "./insightLoader.service.js"; 
+import { fetchYouTubeVideo } from "./youtube.service.js"; // <--- IMPORT THIS
 import dotenv from "dotenv";
 
 dotenv.config();
 
+// --- CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// 🛠️ FIX: Using 'gemini-pro' because it is the most stable and widely available model.
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export const askInsightVIT = async ({ subject, question }) => {
   try {
-    // 1. SAFETY CHECK
+    // --- STEP 1: SAFETY CHECKS ---
     if (!vectorStore || vectorStore.length === 0) {
-      console.warn("⚠️ Warning: Vector Store is empty.");
       return { 
-        answer: "I am unable to answer right now because my knowledge base is empty. Please check the server logs.",
+        answer: "I am ready, but my Knowledge Base is empty. Please check the server logs to ensure PDFs were loaded.",
         source: "System" 
       };
     }
 
-    console.log(`🤔 Oracle thinking about: "${question}"...`);
+    console.log(`🤔 Hybrid Oracle thinking: "${question}" for subject: "${subject}"...`);
 
-    // 2. Embed Question
+    // --- STEP 2: SEARCH (Google Embeddings) ---
     const qResult = await embeddingModel.embedContent(question);
     const qVector = qResult.embedding.values;
 
-    // 3. Semantic Search
+    // Filter documents by Subject
     let candidates = vectorStore;
     
-    // Filter by subject if strictly selected (optional)
     if (subject && subject !== "ALL") {
+      const subjectLower = subject.toLowerCase();
+      let fileKeyword = subjectLower; 
+
+      // Simple mapping logic
+      if (subjectLower.includes("artificial")) fileKeyword = "ai";
+      else if (subjectLower.includes("data ware")) fileKeyword = "dwm";
+      else if (subjectLower.includes("distributed")) fileKeyword = "ds";
+      else if (subjectLower.includes("software")) fileKeyword = "se";
+      else if (subjectLower.includes("compiler")) fileKeyword = "spcd";
+
       candidates = vectorStore.filter(doc => 
-        doc.source.toLowerCase().includes(subject.toLowerCase().replace(/ /g, "_")) || 
+        doc.source.toLowerCase().includes(fileKeyword) || 
         doc.subject === "ALL"
       );
-      if (candidates.length === 0) candidates = vectorStore;
+
+      if (candidates.length === 0) {
+        console.warn(`⚠️ Filter '${fileKeyword}' matched 0 files. Searching ALL documents.`);
+        candidates = vectorStore;
+      }
     }
 
+    // --- STEP 3: RANKING ---
     const scoredDocs = candidates.map(doc => ({
       ...doc,
       score: cosineSimilarity(qVector, doc.vector)
     }));
 
-    // Get Top 5 chunks
+    // Get Top 10 relevant chunks
     const topMatches = scoredDocs
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, 10);
 
-    // Threshold check
     if (topMatches.length === 0 || topMatches[0].score < 0.35) {
       return { 
-        answer: "I couldn't find any relevant information in the official documents for that specific question.",
+        answer: "I couldn't find any relevant information in the provided documents for that specific question.",
         source: null 
       };
     }
 
-    // 4. Construct Prompt
+    // --- STEP 4: ANSWER GENERATION (Groq / Llama 3) ---
     const contextText = topMatches.map(m => m.text).join("\n\n---\n\n");
     const sourceName = topMatches[0].source;
 
     const prompt = `
       You are an expert academic assistant for VIT students.
-      Use the following CONTEXT (extracted from official Syllabus/Question Banks) to answer the user's QUESTION.
+      Use the CONTEXT below (extracted from official university PDFs) to answer the QUESTION.
 
       CONTEXT:
       ${contextText}
@@ -72,29 +85,43 @@ export const askInsightVIT = async ({ subject, question }) => {
       ${question}
 
       GUIDELINES:
-      - Answer strictly based on the context. 
-      - If the context mentions specific modules, list them.
-      - If the answer is not found in the context, say "I don't know based on the provided documents."
-      - Keep it professional and concise.
+      - Answer strictly based on the context provided.
+      - Use Markdown (Bold for headers, Lists for points).
+      - Be concise and accurate.
+      - If the answer is not in the context, say "I don't know based on these documents."
     `;
 
-    // 5. Generate Answer
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.3,
+    });
+
+    const answerText = completion.choices[0]?.message?.content || "No answer generated.";
+
+    // --- STEP 5: FETCH YOUTUBE VIDEO (New) ---
+    let videoData = null;
+    try {
+      console.log("🎥 Fetching related video...");
+      videoData = await fetchYouTubeVideo(question); 
+    } catch (vidErr) {
+      console.error("Video Fetch Failed:", vidErr.message);
+    }
+
     return {
-      answer: response.text(),
-      source: sourceName
+      answer: answerText,
+      source: sourceName,
+      video: videoData // <--- Return the video object
     };
 
   } catch (err) {
-    console.error("❌ QA Service Error Detail:", err.message);
-    throw new Error("AI processing failed. Check server logs.");
+    console.error("❌ Hybrid QA Error:", err.message);
+    throw new Error("AI processing failed.");
   }
 };
 
 /**
- * Math Helper
+ * Helper: Cosine Similarity
  */
 function cosineSimilarity(vecA, vecB) {
   let dotProduct = 0;

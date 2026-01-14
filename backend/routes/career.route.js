@@ -1,83 +1,66 @@
 import express from "express";
 import fs from "fs";
-import path from "path";
 import pdfParse from "pdf-parse";
-import { upload } from "../middlewares/upload.middleware.js"; // Uses the multer config we made
-import { extractTextFromImage } from "../services/ocr.service.js";
-import { analyzeResumeWithOllama } from "../services/aiResumeAnalyzer.service.js";
+import Groq from "groq-sdk"; 
+import { upload } from "../upload.middleware.js"; 
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const router = express.Router();
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 router.post("/analyze", upload.single("resume"), async (req, res) => {
   try {
-    const { jdText } = req.body;
-
     // 1. Validation
-    if (!req.file) {
-      return res.status(400).json({ error: "No resume file uploaded." });
-    }
-    if (!jdText || jdText.trim().length < 10) {
-      return res.status(400).json({ error: "Job Description is required." });
+    if (!req.file || !req.body.jdText) {
+      return res.status(400).json({ message: "Resume PDF and Job Description are required." });
     }
 
-    let resumeText = "";
-    const filePath = req.file.path;
-    const mimeType = req.file.mimetype;
+    // 2. Extract Text from PDF
+    const pdfBuffer = fs.readFileSync(req.file.path);
+    const pdfData = await pdfParse(pdfBuffer);
+    const resumeText = pdfData.text;
 
-    console.log(`📂 Processing file: ${req.file.originalname} (${mimeType})`);
+    // 3. Construct Prompt
+    const prompt = `
+      You are an expert ATS (Applicant Tracking System).
+      Compare the RESUME below against the JOB DESCRIPTION (JD).
 
-    // 2. Extract Text based on File Type
-    if (mimeType === "application/pdf") {
-      const buffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(buffer);
-      resumeText = pdfData.text;
-    } 
-    else if (mimeType.startsWith("image/")) {
-      // Use the OCR service we created
-      resumeText = await extractTextFromImage(filePath);
-    } 
-    else {
-      fs.unlinkSync(filePath); // Cleanup invalid file
-      return res.status(400).json({ error: "Unsupported file format. Use PDF or Image." });
-    }
+      JOB DESCRIPTION:
+      ${req.body.jdText}
 
-    // 3. Cleanup: Delete the temp file immediately after reading
-    try {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } catch (cleanupErr) {
-      console.warn("⚠️ Warning: Could not delete temp file:", cleanupErr.message);
-    }
+      RESUME TEXT:
+      ${resumeText.substring(0, 15000)}
 
-    // 4. Validate Extracted Text
-    if (!resumeText || resumeText.trim().length < 50) {
-      return res.status(422).json({ 
-        error: "Could not read text from resume. Is it empty or scanned poorly?" 
-      });
-    }
+      Analyze strictly and output ONLY JSON. No intro text.
+      JSON Format:
+      {
+        "atsScore": number (0-100),
+        "jdMatchPercentage": number (0-100),
+        "missingSkills": ["skill1", "skill2"],
+        "suggestions": ["advice1", "advice2"]
+      }
+    `;
 
-    console.log("🤖 Sending text to AI for analysis...");
+    // 4. AI Analysis (Groq / Llama 3)
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      response_format: { type: "json_object" }
+    });
 
-    // 5. Send to Ollama for Analysis
-    // Truncate text to ~6000 chars to avoid token limits on smaller local models
-    const aiResult = await analyzeResumeWithOllama(
-      resumeText.slice(0, 6000),
-      jdText.slice(0, 3000)
-    );
+    const jsonResponse = JSON.parse(completion.choices[0].message.content);
 
-    // 6. Return JSON Result to Frontend
-    res.json(aiResult);
+    // 5. Cleanup & Send
+    fs.unlinkSync(req.file.path);
+    res.json(jsonResponse);
 
   } catch (error) {
-    console.error("❌ Career Route Error:", error);
-    
-    // Emergency cleanup
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
-    res.status(500).json({ 
-      error: "Resume analysis failed. Please try again." 
-    });
+    console.error("❌ Resume Analysis Error:", error.message);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ message: "AI Analysis Failed", error: error.message });
   }
 });
 

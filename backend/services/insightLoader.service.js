@@ -108,7 +108,8 @@ async function processPdfBuffer(buffer, filename) {
 
     // 2. Chunking (Split large text into pieces of ~500 chars)
     // Regex splits by approx 500 characters, respecting spaces where possible
-    const chunks = text.match(/[\s\S]{1,500}/g) || [];
+    // INCREASED CHUNK SIZE TO 1200 (Better for Tables/Syllabus)
+    const chunks = text.match(/[\s\S]{1,1200}/g) || [];
     console.log(`📄 Parsed ${filename}: ${chunks.length} chunks generated.`);
 
     // 3. Generate Embeddings for each chunk

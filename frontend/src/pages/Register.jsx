@@ -1,19 +1,68 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css"; 
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [loading, setLoading] = useState(false);
+
+  // --- 1. Get Data passed from Login.jsx ---
+  // If user tries to access /register directly without login, redirect them back.
+  useEffect(() => {
+    if (!location.state) {
+      navigate("/login");
+    }
+  }, [location, navigate]);
+
+  const googleData = location.state || {};
+
+  // --- 2. Form State ---
+  const [formData, setFormData] = useState({
+    fullName: googleData.fullName || "",
+    email: googleData.email || "",
+    uid: googleData.uid || "",
+    profilePic: googleData.photoURL || "",
+    regNo: "",
+    branch: "Computer Science",
+    phone: "",
+    cgpa: "",
+    bio: "",
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // --- 3. Submit to Backend ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Send all details to MongoDB
+      await axios.post("http://localhost:3000/api/auth/register", formData);
+
+      // Success -> Go to Dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Registration Failed:", err);
+      alert("Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- Styles Injection ---
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
       :root {
-        --color-primary: #002147; /* Midnight Navy */
-        --color-secondary: #708090; /* Slate Gray */
-        --color-bg: #F8FAFC; /* Soft White */
-        --color-accent: #D4AF37; /* Burnished Gold */
+        --color-primary: #002147;
+        --color-secondary: #708090;
+        --color-bg: #F8FAFC;
+        --color-accent: #D4AF37;
         --color-white: #FFFFFF;
       }
 
@@ -28,7 +77,6 @@ export default function Register() {
         margin: 0;
       }
 
-      /* --- ANIMATIONS --- */
       @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
@@ -39,27 +87,20 @@ export default function Register() {
         opacity: 0;
       }
 
-      /* --- AUTH CARD --- */
-      .auth-card {
+      .reg-card {
         background: var(--color-white);
         border: none;
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 33, 71, 0.08);
         padding: 3rem 2.5rem;
         width: 100%;
-        max-width: 450px;
+        max-width: 700px; /* Wider for 2 columns */
         position: relative;
         overflow: hidden;
       }
 
-      .auth-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 5px;
-        background: var(--color-primary);
+      .reg-card::before {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: var(--color-primary);
       }
 
       .brand-title {
@@ -77,7 +118,6 @@ export default function Register() {
         margin-bottom: 2rem;
       }
 
-      /* --- FORMS --- */
       .form-label {
         color: var(--color-primary);
         font-weight: 700;
@@ -86,23 +126,29 @@ export default function Register() {
         margin-bottom: 0.5rem;
       }
 
-      .form-control {
+      .form-control, .form-select {
         border: 2px solid #E2E8F0;
         border-radius: 8px;
         padding: 0.8rem 1rem;
-        font-size: 1rem;
+        font-size: 0.95rem;
         background-color: #F8FAFC;
         transition: all 0.2s;
+        color: #333;
       }
 
-      .form-control:focus {
+      .form-control:focus, .form-select:focus {
         border-color: var(--color-primary);
         box-shadow: 0 0 0 4px rgba(0, 33, 71, 0.1);
         background-color: #fff;
         outline: none;
       }
 
-      /* --- BUTTONS --- */
+      .form-control:disabled {
+        background-color: #E2E8F0;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+
       .btn-gold {
         background-color: var(--color-accent);
         color: var(--color-primary);
@@ -123,70 +169,113 @@ export default function Register() {
         color: var(--color-primary);
       }
 
-      .login-link {
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.9rem;
-        color: var(--color-secondary);
-      }
-      
-      .login-link a {
-        color: var(--color-primary);
-        font-weight: 700;
-        text-decoration: none;
-        transition: color 0.2s;
-      }
-      
-      .login-link a:hover {
-        color: var(--color-accent);
-      }
+      .btn-gold:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
 
   return (
-    <div className="container-fluid d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-      
-      <div className="auth-card animate-entrance">
-        
-        <h2 className="brand-title">Join V-Orbit</h2>
-        <p className="brand-subtitle">Start your journey to career excellence.</p>
+    <div
+      className="container-fluid d-flex justify-content-center align-items-center"
+      style={{ minHeight: "100vh", padding: "2rem" }}
+    >
+      <div className="reg-card animate-entrance">
+        <h2 className="brand-title">Complete Your Profile</h2>
+        <p className="brand-subtitle">
+          We need a few details to customize your experience.
+        </p>
 
-        <form onSubmit={(e) => { e.preventDefault(); navigate("/dashboard"); }}>
-          
-          <div className="mb-3">
-            <label className="form-label">Full Name</label>
-            <input type="text" className="form-control" placeholder="John Doe" />
+        <form onSubmit={handleSubmit}>
+          <div className="row g-3">
+            {/* Auto-Filled Info (Read Only) */}
+            <div className="col-12">
+              <label className="form-label">Full Name</label>
+              <input
+                type="text"
+                className="form-control"
+                value={formData.fullName}
+                disabled
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Registration No.</label>
+              <input
+                type="text"
+                className="form-control"
+                name="regNo"
+                required
+                placeholder="e.g. 22BCE10XXX"
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Phone Number</label>
+              <input
+                type="text"
+                className="form-control"
+                name="phone"
+                required
+                placeholder="+91 98765 43210"
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Branch</label>
+              <select
+                className="form-select"
+                name="branch"
+                onChange={handleChange}
+              >
+                <option>Computer Science</option>
+                <option>Information Technology</option>
+                <option>Electronics & Communication</option>
+                <option>Mechanical Engineering</option>
+                <option>Civil Engineering</option>
+              </select>
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">Current CGPA</label>
+              <input
+                type="number"
+                step="0.01"
+                className="form-control"
+                name="cgpa"
+                placeholder="e.g. 9.2"
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="col-12">
+              <label className="form-label">Short Bio</label>
+              <textarea
+                className="form-control"
+                rows="3"
+                name="bio"
+                placeholder="Tell us about your academic interests..."
+                onChange={handleChange}
+              ></textarea>
+            </div>
           </div>
 
-          <div className="mb-3">
-            <label className="form-label">Email Address</label>
-            <input type="email" className="form-control" placeholder="name@vit.ac.in" />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Password</label>
-            <input type="password" className="form-control" placeholder="••••••••" />
-          </div>
-
-          <button type="submit" className="btn-gold">
-            Create Account
+          <button type="submit" className="btn-gold" disabled={loading}>
+            {loading ? (
+              <div
+                className="spinner-border spinner-border-sm text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            ) : (
+              "Finish Setup"
+            )}
           </button>
-
-          <div className="login-link">
-            Already have an account? <span style={{cursor:'pointer'}} onClick={() => navigate("/login")}><a>Login here</a></span>
-          </div>
-          
-          <div className="text-center mt-3">
-            <small className="text-muted" style={{fontSize: '0.75rem'}}>
-              * Firebase authentication integration pending
-            </small>
-          </div>
-
         </form>
       </div>
-      
     </div>
   );
 }

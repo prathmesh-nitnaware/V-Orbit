@@ -1,26 +1,43 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import "bootstrap/dist/css/bootstrap.min.css"; 
+import { auth } from "../firebase"; // <--- 1. Import Firebase
+import { onAuthStateChanged } from "firebase/auth";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function MockInterviewLive() {
   const navigate = useNavigate();
   const location = useLocation();
   const videoRef = useRef(null);
-  const audioRef = useRef(new Audio()); // Audio player instance
+  const audioRef = useRef(new Audio());
 
   const interviewId = location.state?.interviewId;
   const firstQuestion = location.state?.question;
-  
-  // Initialize state
+
+  // --- State ---
+  const [user, setUser] = useState(null); // User state
   const [question, setQuestion] = useState(firstQuestion || "");
-  const [audioUrl, setAudioUrl] = useState(location.state?.audioUrl || ""); // URL from backend
+  const [audioUrl, setAudioUrl] = useState(location.state?.audioUrl || "");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
-  const [questionNumber, setQuestionNumber] = useState(location.state?.questionNumber || 1);
+  const [questionNumber, setQuestionNumber] = useState(
+    location.state?.questionNumber || 1
+  );
   const [isListening, setIsListening] = useState(false);
 
-  // --- 1. Safety Check & Camera Setup ---
+  // --- 2. SECURITY CHECK ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        navigate("/login"); // Kick out if not logged in
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // --- 3. Camera Setup ---
   useEffect(() => {
     if (!interviewId || !question) {
       navigate("/dashboard");
@@ -29,7 +46,10 @@ export default function MockInterviewLive() {
 
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
@@ -41,10 +61,9 @@ export default function MockInterviewLive() {
 
     startCamera();
 
-    // Cleanup: Stop camera & audio on unmount
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
       }
       if (audioRef.current) {
         audioRef.current.pause();
@@ -53,18 +72,21 @@ export default function MockInterviewLive() {
     };
   }, [interviewId, question, navigate]);
 
-  // --- 2. Audio Playback (Google TTS) ---
+  // --- 4. Audio Playback ---
   useEffect(() => {
     if (audioUrl) {
       audioRef.current.src = audioUrl;
-      audioRef.current.play().catch(err => console.error("Audio play error:", err));
+      audioRef.current
+        .play()
+        .catch((err) => console.error("Audio play error:", err));
     }
   }, [audioUrl]);
 
-  // --- 3. Speech Recognition (STT) ---
+  // --- 5. Speech Recognition ---
   const toggleListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
       alert("Browser not supported. Please use Google Chrome.");
       return;
@@ -72,20 +94,19 @@ export default function MockInterviewLive() {
 
     if (isListening) {
       setIsListening(false);
-      // Logic to stop usually handled automatically, but we update UI state here
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false; // Stop after one sentence/pause
+    recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
     recognition.onstart = () => setIsListening(true);
-    
+
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results)
-        .map(result => result[0].transcript)
+        .map((result) => result[0].transcript)
         .join("");
       setAnswer(transcript);
     };
@@ -94,21 +115,19 @@ export default function MockInterviewLive() {
     recognition.start();
   };
 
-  // --- 4. Submit Answer Logic ---
+  // --- 6. Submit Answer ---
   const submitAnswer = async () => {
     if (!answer.trim()) return;
-    
-    // Stop audio if user interrupts
-    audioRef.current.pause(); 
+
+    audioRef.current.pause();
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/mock/answer",
-        { interviewId, answer }
-      );
+      const res = await axios.post("http://localhost:3000/api/mock/answer", {
+        interviewId,
+        answer,
+      });
 
-      // Check if interview ended
       if (res.data.isLast) {
         navigate("/mock/result", {
           state: {
@@ -120,12 +139,10 @@ export default function MockInterviewLive() {
         return;
       }
 
-      // Load next question data
       setQuestion(res.data.question);
-      setQuestionNumber(prev => prev + 1);
-      setAudioUrl(res.data.audioUrl); // Update audio to new question
+      setQuestionNumber((prev) => prev + 1);
+      setAudioUrl(res.data.audioUrl);
       setAnswer("");
-      
     } catch (err) {
       console.error("Submission error:", err);
       alert("Failed to submit answer. Please try again.");
@@ -134,7 +151,7 @@ export default function MockInterviewLive() {
     }
   };
 
-  // --- 5. Styles Injection ---
+  // --- Styles Injection ---
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -241,46 +258,89 @@ export default function MockInterviewLive() {
 
   return (
     <div className="container-fluid p-0">
-      
       {/* Sidebar */}
       <div className="sidebar-container">
         <div className="sidebar-header">
           <h2 className="sidebar-title">V-Orbit</h2>
         </div>
         <div className="nav-menu">
-          <button className="nav-btn" onClick={() => navigate("/dashboard")}><span>Dashboard</span></button>
-          <button className="nav-btn" onClick={() => navigate("/insight")}><span>Insight-VIT</span></button>
-          <button className="nav-btn active-btn"><span>Mock-V Live</span></button>
-          <button className="nav-btn" onClick={() => navigate("/resume-scorer")}><span>Resume Scorer</span></button>
-          <button className="nav-btn" onClick={() => navigate("/lectures")}><span>Lectures</span></button>
+          <button className="nav-btn" onClick={() => navigate("/dashboard")}>
+            <span>Dashboard</span>
+          </button>
+          <button className="nav-btn" onClick={() => navigate("/insight")}>
+            <span>Insight-VIT</span>
+          </button>
+          <button className="nav-btn active-btn">
+            <span>Mock-V Live</span>
+          </button>
+          <button
+            className="nav-btn"
+            onClick={() => navigate("/resume-scorer")}
+          >
+            <span>Resume Scorer</span>
+          </button>
+          <button className="nav-btn" onClick={() => navigate("/lectures")}>
+            <span>Lectures</span>
+          </button>
         </div>
         <div className="user-footer">
-          <div className="profile-info" onClick={() => navigate('/profile')}>
-            <svg width="36" height="36" viewBox="0 0 16 16" fill="#F8FAFC" className="bi bi-person-circle">
-                <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                <path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+          <div className="profile-info" onClick={() => navigate("/profile")}>
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 16 16"
+              fill="#F8FAFC"
+              className="bi bi-person-circle"
+            >
+              <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+              <path
+                fillRule="evenodd"
+                d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"
+              />
             </svg>
-            <span className="small fw-bold text-white">Prathmesh</span>
+            <span className="small fw-bold text-white">
+              {user ? user.displayName?.split(" ")[0] : "Student"}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
-        
         <div className="d-flex justify-content-between align-items-center mb-4 animate-entrance">
           <div>
-            <h2 className="hero-title mb-0" style={{color: '#002147', fontWeight: '800'}}>Live Interview</h2>
-            <p className="hero-sub mb-0">Question {questionNumber} • <span style={{color:'#D4AF37'}}>AI Is Listening</span></p>
+            <h2
+              className="hero-title mb-0"
+              style={{ color: "#002147", fontWeight: "800" }}
+            >
+              Live Interview
+            </h2>
+            <p className="hero-sub mb-0">
+              Question {questionNumber} •{" "}
+              <span style={{ color: "#D4AF37" }}>AI Is Listening</span>
+            </p>
           </div>
-          <button className="btn btn-outline-danger btn-sm" onClick={() => navigate("/dashboard")}>End Session</button>
+          <button
+            className="btn btn-outline-danger btn-sm"
+            onClick={() => navigate("/dashboard")}
+          >
+            End Session
+          </button>
         </div>
 
         <div className="interview-container">
-          
           {/* LEFT: Camera Feed */}
-          <div className="camera-card animate-entrance" style={{animationDelay: '0.1s'}}>
-            <video ref={videoRef} autoPlay playsInline muted className="live-video" />
+          <div
+            className="camera-card animate-entrance"
+            style={{ animationDelay: "0.1s" }}
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="live-video"
+            />
             <div className="camera-overlay">
               <div className="recording-dot"></div>
               <span>LIVE</span>
@@ -288,46 +348,58 @@ export default function MockInterviewLive() {
           </div>
 
           {/* RIGHT: Chat & Controls */}
-          <div className="chat-card animate-entrance" style={{animationDelay: '0.2s'}}>
-            
+          <div
+            className="chat-card animate-entrance"
+            style={{ animationDelay: "0.2s" }}
+          >
             <div className="ai-bubble">
               <span className="ai-label">AI Interviewer</span>
-              <p style={{fontSize: '1.25rem', fontWeight: '600', color: '#002147', marginBottom: 0}}>
+              <p
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: "600",
+                  color: "#002147",
+                  marginBottom: 0,
+                }}
+              >
                 {question}
               </p>
             </div>
 
             <div className="user-input-area">
-              <button 
-                className={`mic-btn ${isListening ? 'listening' : ''}`}
+              <button
+                className={`mic-btn ${isListening ? "listening" : ""}`}
                 onClick={toggleListening}
                 title={isListening ? "Stop Listening" : "Start Speaking"}
               >
-                <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V3z"/>
-                  <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                >
+                  <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V3z" />
+                  <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z" />
                 </svg>
               </button>
 
-              <textarea 
-                className="form-control" 
-                rows="4" 
-                placeholder="Speak now or type your answer..." 
+              <textarea
+                className="form-control"
+                rows="4"
+                placeholder="Speak now or type your answer..."
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
               />
 
-              <button 
-                className="btn-submit" 
+              <button
+                className="btn-submit"
                 onClick={submitAnswer}
                 disabled={loading}
               >
                 {loading ? "Evaluating..." : "Submit Answer"}
               </button>
             </div>
-
           </div>
-
         </div>
       </div>
     </div>
