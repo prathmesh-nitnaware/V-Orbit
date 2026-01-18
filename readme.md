@@ -26,7 +26,7 @@ V-Orbit is a deep-tech platform that bridges the gap between academic learning a
 * **Skill Hologram:** Instead of a boring score, V-Orbit generates a **Radar Chart (Spider Graph)** visualizing your fit across 5 dimensions: *Coding, System Design, Experience, Education, and Soft Skills*.
 * **ATS Optimization:** Highlights missing keywords and provides actionable fixes to beat the Applicant Tracking System.
 
-### 4. 📈 Live Dashboard 2.0
+### 4. 📈 Live Dashboard
 * **Confidence Trend Graph:** A live-updating graph that tracks your calculated "Confidence Score" (derived from NLP sentiment & filler counts) over time.
 * **Activity Feed:** Syncs directly with the MongoDB backend to show recent interview history with sentiment icons.
 
