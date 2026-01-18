@@ -1,35 +1,34 @@
-# 🚀 V-Orbit: The Gold Standard for Engineers
+# 🚀 V-Orbit: The AI-Native Engineering Ecosystem
 
-> **Empowering the next generation of engineers with Hybrid AI, Real-time Analytics, and Personalized Career Acceleration.**
-
-**V-Orbit** is a comprehensive full-stack platform designed to bridge the gap between academic learning and industry requirements. By leveraging cutting-edge AI models (Gemini & Llama 3), it provides students with instant syllabus answers, realistic mock interviews, and ATS-grade resume optimization.
+**The Gold Standard for Engineers.**
+V-Orbit is a deep-tech platform that bridges the gap between academic learning and industry readiness. Unlike standard wrappers, V-Orbit is a fully integrated ecosystem powered by **Computer Vision, NLP, Hybrid RAG (Retrieval-Augmented Generation), and Google Cloud**.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Features (The "Deep Tech" Upgrade)
 
-### 1. 🤖 Insight-VIT (Academic Oracle)
-* **RAG-Powered Chatbot:** "Talk" to your university syllabus and PDF notes. The AI understands context and answers specific academic queries.
-* **Hybrid Intelligence:** Uses **Google Gemini** for vector embeddings (search) and **Groq (Llama 3)** for answer generation.
-* **Smart Recommendations:** Automatically fetches relevant **YouTube Video Tutorials** alongside text answers for a multimodal learning experience.
+### 1. 🎥 Mock-V (AI Proctoring & NLP Analysis)
+* **Computer Vision Proctoring:** Uses `face-api.js` (TensorFlow.js) to perform real-time face detection. It flags suspicious behavior (looking away, multiple faces, or no face detected) directly in the browser.
+* **Speech NLP Analytics:** Analyzes your spoken answers to detect **Filler Words** ("um", "uh") and **Sentiment** (Confidence Level).
+* **Adaptive Interview Flow:**
+    * **Skill Check:** Extracts skills from your uploaded Resume PDF.
+    * **Project Deep-Dive:** Asks technical questions about your specific projects.
+    * **Live Feedback:** Provides a detailed performance review and hiring decision.
 
-### 2. 🎥 Mock-V (AI Interviewer)
-* **Adaptive Interview Flow:** The AI acts as a human interviewer, dynamically adjusting questions based on your responses:
-    1.  **Skill Check:** Extracts skills from your uploaded Resume PDF.
-    2.  **Project Deep-Dive:** Asks technical questions about your specific projects.
-    3.  **DSA & System Design:** Challenges you with algorithmic problems.
-* **Text-to-Speech (TTS):** The interviewer speaks to you using realistic audio synthesis.
-* **Live Feedback:** Provides a detailed performance review and hiring decision (Hire/No Hire) instantly.
+### 2. 🤖 Insight-VIT (Hybrid RAG Chatbot)
+* **Cloud-Native RAG:** Connects directly to a **Google Cloud Storage Bucket** to stream and index syllabus PDFs dynamically.
+* **Hybrid Intelligence:**
+    * **Syllabus Mode:** Uses **Google Gemini Embeddings (`text-embedding-004`)** to strictly answer from uploaded documents.
+    * **General Tutor Mode:** Falls back to Large Language Models (LLM) for general concept explanations if the syllabus is silent.
+* **Multimodal:** Automatically fetches relevant **YouTube Video Tutorials** alongside text answers.
 
-### 3. 📄 Resume Scorer (ATS Optimizer)
-* **AI Analysis:** Parses your PDF resume and compares it against a target Job Description (JD).
-* **Scoring Engine:** Generates a compatibility score (0-100%).
-* **Actionable Insights:** Highlights missing keywords and suggests specific improvements to beat the ATS.
+### 3. 📊 Resume Scorer (Holographic Visualization)
+* **Skill Hologram:** Instead of a boring score, V-Orbit generates a **Radar Chart (Spider Graph)** visualizing your fit across 5 dimensions: *Coding, System Design, Experience, Education, and Soft Skills*.
+* **ATS Optimization:** Highlights missing keywords and provides actionable fixes to beat the Applicant Tracking System.
 
-### 4. 📊 Live Dashboard
-* **Real-Time Analytics:** Tracks your interview performance trends over time.
-* **Interactive Visuals:** Features a "Sci-Fi" style scanning graph and radar charts for skill analysis.
-* **Activity Feed:** Syncs directly with the MongoDB backend to show recent interview history.
+### 4. 📈 Live Dashboard 2.0
+* **Confidence Trend Graph:** A live-updating graph that tracks your calculated "Confidence Score" (derived from NLP sentiment & filler counts) over time.
+* **Activity Feed:** Syncs directly with the MongoDB backend to show recent interview history with sentiment icons.
 
 ---
 
@@ -37,90 +36,73 @@
 
 ### **Frontend**
 * **Framework:** React.js (Vite)
+* **AI Vision:** `face-api.js` (TensorFlow.js wrapper)
+* **Visualization:** `recharts` (Radar Charts & Area Graphs)
 * **Styling:** Bootstrap 5, Custom CSS Animations
 * **State Management:** React Hooks & Context API
-* **HTTP Client:** Axios
-* **Routing:** React Router DOM
 
 ### **Backend**
-* **Runtime:** Node.js
-* **Framework:** Express.js
-* **Database:** MongoDB (Mongoose) - Local & Cloud (Atlas) compatible
-* **File Handling:** Multer, PDF-Parse
+* **Runtime:** Node.js & Express.js
+* **Database:** MongoDB (Mongoose)
+* **Cloud Storage:** **Google Cloud Storage (GCS)** for scalable document handling.
+* **NLP:** `sentiment` library for text analysis.
+* **PDF Processing:** `pdf-parse`
 
 ### **🤖 Google Technologies Used**
-V-Orbit heavily relies on the Google Cloud ecosystem for its core AI capabilities:
-
 | Technology | Purpose in V-Orbit |
 | :--- | :--- |
-| **Google Gemini API** | Used in `Insight-VIT` to generate high-dimensional **Text Embeddings**, allowing the system to semantically search through hundreds of PDF pages instantly. |
-| **YouTube Data API v3** | Fetches curated video tutorials related to the student's academic queries in real-time. |
-| **Firebase Authentication** | Handles secure user management, providing seamless **Google Sign-In** and session handling. |
-| **Google Text-to-Speech** | Powers the voice of the AI Interviewer in `Mock-V`, making the simulation immersive. |
-
-### **Additional AI & Tools**
-* **Groq Cloud (Llama 3.3 70B):** The "Brain" behind the reasoning, code analysis, and complex conversation logic.
-* **React Markdown:** Renders rich text responses from the AI.
+| **Google Cloud Storage** | Stores and streams syllabus PDFs for the RAG system (Serverless & Scalable). |
+| **Google Gemini API** | Generates high-dimensional **Text Embeddings (`text-embedding-004`)** for semantic search. |
+| **YouTube Data API v3** | Fetches curated video tutorials related to academic queries. |
+| **Firebase Auth** | Handles secure user management and Google Sign-In. |
+| **Google TTS** | Powers the voice of the AI Interviewer. |
 
 ---
 
 ## 🚀 Installation & Setup
 
-Follow these steps to run V-Orbit locally.
-
 ### **Prerequisites**
-* Node.js (v18 or higher)
-* MongoDB (Installed locally or an Atlas URI)
-* API Keys for: Groq, Google Gemini, YouTube, Firebase.
+* Node.js (v18+)
+* MongoDB (Atlas or Local)
+* **Google Cloud Service Account JSON** (with Storage Admin access)
 
 ### **Step 1: Backend Setup**
-
-1.  Navigate to the backend folder:
+1.  Navigate to the backend:
     ```bash
     cd backend
-    ```
-2.  Install dependencies:
-    ```bash
     npm install
     ```
-3.  Create a `.env` file in the `backend` directory:
+2.  Create a `.env` file in `backend/`:
     ```ini
     PORT=3000
-    # Use your Local MongoDB or Atlas Connection String
-    MONGODB_URI=mongodb://127.0.0.1:27017/v-orbit
+    MONGODB_URI=your_mongodb_connection_string
     
     # AI Keys
-    GROQ_API_KEY=gsk_your_groq_key_here
-    GEMINI_API_KEY=your_google_gemini_key
-    YOUTUBE_API_KEY=your_youtube_data_api_key
+    GROQ_API_KEY=your_groq_key
+    GEMINI_API_KEY=your_gemini_key
+    YOUTUBE_API_KEY=your_youtube_key
+    
+    # Google Cloud Storage (RAG)
+    INSIGHT_BUCKET_NAME=your_gcs_bucket_name
+    GOOGLE_APPLICATION_CREDENTIALS=./service-account-key.json
     ```
-4.  **Important:** Create a folder named `documents` inside `backend/` and paste your syllabus PDFs there.
-5.  Start the server:
+3.  **Important:** Place your Google Service Account JSON file inside the `backend/` folder.
+4.  Start the server:
     ```bash
     node index.js
     ```
-    *(Verify you see: "MongoDB Connected" & "Insight-VIT documents loaded")*
+    *(Check logs for: "☁️ Connecting to GCS Bucket...")*
 
 ### **Step 2: Frontend Setup**
-
-1.  Open a new terminal and navigate to the frontend:
+1.  Navigate to frontend:
     ```bash
     cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
     npm install
     ```
-3.  Create a `.env` file in the `frontend` directory:
-    ```ini
-    VITE_FIREBASE_API_KEY=your_firebase_api_key
-    VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-    VITE_FIREBASE_PROJECT_ID=your_project_id
-    VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-    VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-    VITE_FIREBASE_APP_ID=your_app_id
-    ```
-4.  Start the React app:
+2.  **Download AI Models:**
+    * Download the `weights` folder from [face-api.js models](https://github.com/justadudewhohacks/face-api.js/tree/master/weights).
+    * Place them in `frontend/public/models`.
+3.  Start the app:
     ```bash
     npm run dev
     ```
@@ -129,27 +111,18 @@ Follow these steps to run V-Orbit locally.
 
 ## 📖 Usage Guide
 
-1.  **Authentication:**
-    * Open `http://localhost:5173`.
-    * Click **"Sign in with Google"** (if configured) or **"Continue as Guest"** for instant access.
-2.  **Upload Documents:**
-    * Ensure your PDFs are in the `backend/documents` folder before starting the backend.
-3.  **Start a Mock Interview:**
-    * Navigate to **Mock-V**.
-    * Upload your Resume (PDF).
-    * Select difficulty and click Start. The AI will read your resume and begin the session.
-4.  **Ask Insight-VIT:**
-    * Go to **Insight-VIT**.
-    * Type a query like *"Explain Module 3 of AI"*.
-    * Watch as it retrieves the answer from your PDF and suggests a YouTube video.
+1.  **AI Proctoring:** Go to "Mock-V". Allow camera access. Watch the system verify your face (Green Box) before letting you start.
+2.  **Insight-VIT:** Go to the Chat. Select a subject (e.g., "AI"). Ask a question. See it fetch answers from your Cloud Bucket + a YouTube video.
+3.  **Resume Scorer:** Upload a Resume & JD. Watch the **Skill Hologram** appear.
 
 ---
 
 ## 🔮 Future Roadmap
-* [ ] Adding Role based Sample Interview and Role Based Technical Interview
-* [ ] Add Voice-to-Text (STT) for user answers in Mock Interview.
-* [ ] Multi-user document uploads via the frontend.
-* [ ] Gamified leaderboard for resume scores.
+* ✅ **Completed:** Hybrid RAG, Computer Vision Proctoring, NLP Analytics.
+* 🔜 **Next:**
+    * Voice-to-Text (STT) for verbal interview answers.
+    * Gamified Leaderboard.
+    * Multi-user collaboration.
 
 ---
 
