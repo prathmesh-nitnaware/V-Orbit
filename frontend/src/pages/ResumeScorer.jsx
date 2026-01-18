@@ -21,7 +21,7 @@ export default function ResumeScorer() {
   useEffect(() => {
     const isGuest = localStorage.getItem("userMode") === "guest";
     if (isGuest) {
-      setUser({ displayName: "Guest", email: "guest@vorbit.com" });
+      setUser({ displayName: "Guest User", email: "guest@vorbit.com" });
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -64,7 +64,7 @@ export default function ResumeScorer() {
     }
   };
 
-  // --- Styles Injection ---
+  // --- Styles Injection (Merged Dashboard + Resume Scorer Specifics) ---
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -76,29 +76,37 @@ export default function ResumeScorer() {
         --color-white: #FFFFFF;
       }
 
-      body { background-color: var(--color-bg); color: #333; font-family: 'Segoe UI', 'Roboto', sans-serif; overflow-x: hidden; }
+      body { background-color: var(--color-bg); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
 
-      /* Animations */
+      /* --- ANIMATIONS --- */
       @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       .animate-entrance { animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
 
-      /* Sidebar (Consistent) */
+      /* --- SIDEBAR (Standardized) --- */
       .sidebar-container { background: var(--color-primary); height: 100vh; width: 280px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; color: white; z-index: 1000; box-shadow: 4px 0 15px rgba(0, 33, 71, 0.15); }
       .sidebar-header { padding: 2.5rem 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-      .sidebar-title { color: var(--color-accent); font-weight: 700; letter-spacing: 1.5px; margin: 0; font-size: 1.6rem; text-transform: uppercase; }
+      .sidebar-title { color: var(--color-accent); font-weight: 700; letter-spacing: 1.5px; font-size: 1.6rem; text-transform: uppercase; margin: 0; }
+      
       .nav-menu { padding: 1.5rem 1rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.8rem; }
+      
       .nav-btn { background: transparent; color: #B0C4DE; border: none; padding: 0.9rem 1.2rem; text-align: left; border-radius: 6px; font-weight: 500; font-size: 1rem; transition: 0.3s; display: flex; align-items: center; }
       .nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; transform: translateX(5px); }
       .nav-btn.active-btn { background: var(--color-accent); color: var(--color-primary); font-weight: 700; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
+      
       .user-footer { padding: 1.5rem 2rem; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); }
+      .profile-info { display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s; }
+      .profile-info:hover { opacity: 0.8; }
+      .settings-icon { color: var(--color-secondary); cursor: pointer; padding: 6px; border-radius: 50%; transition: 0.2s; border: 1px solid transparent; }
+      .settings-icon:hover { color: var(--color-accent); border-color: var(--color-accent); }
 
-      /* Main Content */
+      /* --- MAIN CONTENT --- */
       .main-content { margin-left: 280px; padding: 3.5rem 4.5rem; min-height: 100vh; }
       .hero-title { color: var(--color-primary); font-weight: 800; margin-bottom: 0.5rem; }
       .hero-sub { color: var(--color-secondary); font-size: 1.1rem; font-weight: 500; }
 
-      /* Card Styles */
-      .custom-card { border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); background: var(--color-white); position: relative; overflow: hidden; }
+      /* --- PAGE SPECIFIC CARDS --- */
+      .custom-card { border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); background: var(--color-white); position: relative; overflow: hidden; transition: 0.3s; }
+      .custom-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0, 33, 71, 0.10); }
       .custom-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--color-primary); }
 
       .form-label { color: var(--color-primary); font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.5rem; }
@@ -116,7 +124,7 @@ export default function ResumeScorer() {
 
       .skill-tag { background-color: #fee2e2; color: #991b1b; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block; }
       
-      @media (max-width: 992px) { .sidebar-container { display: none; } .main-content { margin-left: 0; padding: 1rem; } }
+      @media (max-width: 992px) { .sidebar-container { display: none; } .main-content { margin-left: 0; padding: 2rem; } }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
@@ -124,7 +132,7 @@ export default function ResumeScorer() {
 
   return (
     <div className="container-fluid p-0">
-      {/* Sidebar */}
+      {/* Sidebar - EXACT COPY from Dashboard.jsx */}
       <div className="sidebar-container">
         <div className="sidebar-header">
           <h2 className="sidebar-title">V-Orbit</h2>
@@ -142,6 +150,7 @@ export default function ResumeScorer() {
           >
             <span>Mock-V</span>
           </button>
+          {/* Active State Here */}
           <button className="nav-btn active-btn">
             <span>Resume Scorer</span>
           </button>
@@ -151,27 +160,37 @@ export default function ResumeScorer() {
         </div>
         <div className="user-footer">
           <div className="profile-info" onClick={() => navigate("/profile")}>
-            <div
-              className="rounded-circle bg-white d-flex justify-content-center align-items-center"
-              style={{
-                width: "32px",
-                height: "32px",
-                color: "#002147",
-                fontWeight: "bold",
-              }}
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 16 16"
+              fill="#F8FAFC"
+              className="bi bi-person-circle"
             >
-              {user ? user.displayName?.charAt(0) : "S"}
-            </div>
+              <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+              <path
+                fillRule="evenodd"
+                d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"
+              />
+            </svg>
             <span className="small fw-bold text-white">
               {user ? user.displayName?.split(" ")[0] : "Student"}
             </span>
+          </div>
+          <div className="settings-icon" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z" />
+            </svg>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="main-content">
-        <div className="mb-5 animate-entrance">
+        <div
+          className="mb-5 animate-entrance"
+          style={{ animationDelay: "0.1s" }}
+        >
           <h1 className="display-4 hero-title">Resume Scorer</h1>
           <p className="hero-sub">Generate your AI Skill Hologram.</p>
         </div>
@@ -180,7 +199,7 @@ export default function ResumeScorer() {
           {/* LEFT: INPUT */}
           <div
             className="col-lg-5 animate-entrance"
-            style={{ animationDelay: "0.1s" }}
+            style={{ animationDelay: "0.2s" }}
           >
             <div className="custom-card p-4 h-100">
               <h5 className="fw-bold mb-4" style={{ color: "#002147" }}>
@@ -213,7 +232,18 @@ export default function ResumeScorer() {
                 onClick={handleAnalyze}
                 disabled={loading}
               >
-                {loading ? "Generating Hologram..." : "Analyze Resume"}
+                {loading ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                    Generating Hologram...
+                  </>
+                ) : (
+                  "Analyze Resume"
+                )}
               </button>
             </div>
           </div>
@@ -221,7 +251,7 @@ export default function ResumeScorer() {
           {/* RIGHT: RESULTS (Hologram) */}
           <div
             className="col-lg-7 animate-entrance"
-            style={{ animationDelay: "0.2s" }}
+            style={{ animationDelay: "0.3s" }}
           >
             {result ? (
               <div className="custom-card p-4 h-100">

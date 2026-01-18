@@ -13,11 +13,14 @@ export default function InsightVIT() {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I am Insight-VIT. Select a subject and ask me anything about your syllabus or concepts.",
+      text: "Hello! I am Insight-VIT. Select a subject and ask me anything about your syllabus.",
     },
   ]);
   const [input, setInput] = useState("");
-  const [subject, setSubject] = useState("ALL");
+
+  // DEFAULT: Select a valid subject from your bucket
+  const [subject, setSubject] = useState("AI");
+
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -26,11 +29,9 @@ export default function InsightVIT() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) setUser(currentUser);
       else {
-        if (localStorage.getItem("userMode") === "guest") {
-          setUser({ displayName: "Guest" });
-        } else {
-          navigate("/login");
-        }
+        if (localStorage.getItem("userMode") === "guest")
+          setUser({ displayName: "Guest User" });
+        else navigate("/login");
       }
     });
     return () => unsubscribe();
@@ -58,17 +59,18 @@ export default function InsightVIT() {
       const botMessage = {
         sender: "bot",
         text: res.data.answer,
-        source: res.data.source, // Filename from backend
-        video: res.data.video, // YouTube object
+        source: res.data.source,
+        video: res.data.video,
       };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
+      console.error(err);
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: "Sorry, I encountered an error connecting to the Knowledge Base. Please ensure the backend is running.",
+          text: "Sorry, I couldn't connect to the server. Is the backend running?",
         },
       ]);
     } finally {
@@ -76,55 +78,65 @@ export default function InsightVIT() {
     }
   };
 
-  // --- Styles ---
+  // --- Styles (Merged Dashboard Sidebar + Chat Layout) ---
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
-      :root { --color-primary: #002147; --color-secondary: #708090; --color-bg: #F8FAFC; --color-accent: #D4AF37; --color-white: #FFFFFF; }
+      :root {
+        --color-primary: #002147;
+        --color-secondary: #708090;
+        --color-bg: #F8FAFC;
+        --color-accent: #D4AF37;
+        --color-white: #FFFFFF;
+      }
+
       body { background-color: var(--color-bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-      
-      /* Sidebar */
-      .sidebar-container { background-color: var(--color-primary); height: 100vh; width: 280px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; color: white; z-index: 1000; box-shadow: 4px 0 15px rgba(0, 33, 71, 0.15); }
+
+      /* --- ANIMATIONS --- */
+      @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      .animate-entrance { animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+
+      /* --- SIDEBAR (Copied from Dashboard) --- */
+      .sidebar-container { background: var(--color-primary); height: 100vh; width: 280px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; color: white; z-index: 1000; box-shadow: 4px 0 15px rgba(0, 33, 71, 0.15); }
       .sidebar-header { padding: 2.5rem 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
       .sidebar-title { color: var(--color-accent); font-weight: 700; letter-spacing: 1.5px; font-size: 1.6rem; text-transform: uppercase; margin: 0; }
+      
       .nav-menu { padding: 1.5rem 1rem; flex-grow: 1; display: flex; flex-direction: column; gap: 0.8rem; }
+      
       .nav-btn { background: transparent; color: #B0C4DE; border: none; padding: 0.9rem 1.2rem; text-align: left; border-radius: 6px; font-weight: 500; font-size: 1rem; transition: 0.3s; display: flex; align-items: center; }
       .nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: white; transform: translateX(5px); }
       .nav-btn.active-btn { background: var(--color-accent); color: var(--color-primary); font-weight: 700; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
+      
       .user-footer { padding: 1.5rem 2rem; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); }
-      
-      /* Main Content */
-      .main-content { margin-left: 280px; height: 100vh; display: flex; flex-direction: column; }
-      
-      /* Chat Area */
-      .chat-area { flex-grow: 1; padding: 2rem 4.5rem; overflow-y: auto; background-color: #F8FAFC; display: flex; flex-direction: column; gap: 1.5rem; }
-      .message { max-width: 75%; padding: 1.5rem; border-radius: 12px; position: relative; animation: fadeIn 0.3s ease; line-height: 1.6; }
-      .message.user { align-self: flex-end; background-color: var(--color-primary); color: white; border-bottom-right-radius: 2px; box-shadow: 0 4px 15px rgba(0, 33, 71, 0.15); }
-      .message.bot { align-self: flex-start; background-color: white; border: 1px solid #E2E8F0; color: #333; border-bottom-left-radius: 2px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-      
-      /* Input Area */
-      .input-area { background: white; padding: 1.5rem 4.5rem; border-top: 1px solid #E2E8F0; display: flex; gap: 1rem; align-items: center; }
-      .form-control { border-radius: 12px; padding: 1rem 1.5rem; border: 2px solid #E2E8F0; font-size: 1rem; }
-      .form-control:focus { border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(0, 33, 71, 0.1); }
-      .btn-send { background-color: var(--color-accent); color: var(--color-primary); border: none; width: 55px; height: 55px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: 0.2s; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
-      
-      /* Video Card */
-      .video-card { margin-top: 1.5rem; background: #fff; border-radius: 12px; padding: 0; border: 1px solid #e9ecef; max-width: 320px; transition: 0.2s; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-      .video-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
-      .video-thumb { width: 100%; height: 160px; object-fit: cover; }
-      .video-content { padding: 12px; }
-      .video-title { font-size: 0.95rem; font-weight: 700; color: #002147; line-height: 1.3; margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      .video-label { font-size: 0.7rem; color: #D4AF37; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
+      .profile-info { display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s; }
+      .profile-info:hover { opacity: 0.8; }
+      .settings-icon { color: var(--color-secondary); cursor: pointer; padding: 6px; border-radius: 50%; transition: 0.2s; border: 1px solid transparent; }
+      .settings-icon:hover { color: var(--color-accent); border-color: var(--color-accent); }
 
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      @media (max-width: 992px) { 
-        .sidebar-container { width: 80px; align-items: center; } 
-        .sidebar-header { padding: 1.5rem 0; text-align: center; } 
-        .sidebar-title { font-size: 0.6rem; }
-        .nav-btn span { display: none; }
-        .main-content { margin-left: 80px; }
-        .chat-area, .input-area { padding-left: 1.5rem; padding-right: 1.5rem; }
-      }
+      /* --- MAIN CONTENT & CHAT --- */
+      .main-content { margin-left: 280px; height: 100vh; display: flex; flex-direction: column; background: #F8FAFC; }
+      
+      .chat-header { padding: 1.5rem 2.5rem; background: white; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+
+      .chat-area { flex-grow: 1; padding: 2rem 4rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; }
+      
+      .message { max-width: 80%; padding: 1.5rem; border-radius: 12px; position: relative; line-height: 1.6; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+      .message.user { align-self: flex-end; background: var(--color-primary); color: white; border-bottom-right-radius: 2px; }
+      .message.bot { align-self: flex-start; background: white; border: 1px solid #E2E8F0; color: #333; border-bottom-left-radius: 2px; }
+      
+      .video-card { margin-top: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; max-width: 300px; cursor: pointer; transition: 0.2s; }
+      .video-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+      .video-thumb { width: 100%; height: 160px; object-fit: cover; }
+      .video-title { padding: 10px; font-weight: bold; font-size: 0.9rem; color: #002147; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+      .input-area { background: white; padding: 1.5rem 4rem; border-top: 1px solid #E2E8F0; display: flex; gap: 10px; box-shadow: 0 -4px 20px rgba(0,0,0,0.02); }
+      .form-control { flex-grow: 1; padding: 1rem; border-radius: 8px; border: 2px solid #E2E8F0; transition: border 0.3s; }
+      .form-control:focus { border-color: var(--color-primary); outline: none; box-shadow: none; }
+      .btn-send { background: var(--color-accent); color: var(--color-primary); border: none; padding: 0 25px; border-radius: 8px; font-weight: bold; transition: transform 0.2s; }
+      .btn-send:hover { transform: scale(1.05); }
+      .btn-send:active { transform: scale(0.95); }
+
+      @media (max-width: 992px) { .sidebar-container { display: none; } .main-content { margin-left: 0; } .chat-area, .input-area { padding: 1rem; } }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
@@ -132,7 +144,7 @@ export default function InsightVIT() {
 
   return (
     <div className="container-fluid p-0">
-      {/* Sidebar */}
+      {/* Sidebar - EXACT COPY from Dashboard.jsx */}
       <div className="sidebar-container">
         <div className="sidebar-header">
           <h2 className="sidebar-title">V-Orbit</h2>
@@ -141,6 +153,7 @@ export default function InsightVIT() {
           <button className="nav-btn" onClick={() => navigate("/dashboard")}>
             <span>Dashboard</span>
           </button>
+          {/* Active State Here */}
           <button className="nav-btn active-btn">
             <span>Insight-VIT</span>
           </button>
@@ -161,81 +174,77 @@ export default function InsightVIT() {
           </button>
         </div>
         <div className="user-footer">
-          <div className="d-flex align-items-center gap-2">
-            <div
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: "#fff",
-                color: "#002147",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "bold",
-              }}
+          <div className="profile-info" onClick={() => navigate("/profile")}>
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 16 16"
+              fill="#F8FAFC"
+              className="bi bi-person-circle"
             >
-              {user ? user.displayName?.charAt(0) : "S"}
-            </div>
+              <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+              <path
+                fillRule="evenodd"
+                d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"
+              />
+            </svg>
+            <span className="small fw-bold text-white">
+              {user ? user.displayName?.split(" ")[0] : "Student"}
+            </span>
+          </div>
+          <div className="settings-icon" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z" />
+            </svg>
           </div>
         </div>
       </div>
 
-      {/* Main Chat Interface */}
+      {/* Main Chat Content */}
       <div className="main-content">
-        {/* Top Bar with Subject Select */}
+        {/* Header - Animated Entrance */}
         <div
-          className="d-flex justify-content-between align-items-center p-4 bg-white shadow-sm"
-          style={{ zIndex: 10 }}
+          className="chat-header animate-entrance"
+          style={{ animationDelay: "0.1s" }}
         >
-          <h4 className="m-0 fw-bold" style={{ color: "#002147" }}>
-            Insight-VIT Chat
-          </h4>
+          <div>
+            <h4 className="m-0 fw-bold" style={{ color: "#002147" }}>
+              Insight-VIT
+            </h4>
+            <small className="text-muted">PDF Syllabus Assistant</small>
+          </div>
+
           <select
-            className="form-select w-auto border-2"
-            style={{
-              borderColor: "#002147",
-              fontWeight: "600",
-              color: "#002147",
-            }}
+            className="form-select w-auto fw-bold text-primary border-2"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
+            style={{ cursor: "pointer" }}
           >
-            <option value="ALL">Global Search (All Docs)</option>
-            <option value="Artificial Intelligence">
-              Artificial Intelligence
-            </option>
-            <option value="Web Development">Web Development</option>
-            <option value="Cloud Computing">Cloud Computing</option>
-            <option value="Data Structures">Data Structures</option>
+            <option value="AI">Artificial Intelligence (AI)</option>
+            <option value="DS">Distributed Systems (DS)</option>
+            <option value="DWM">Data Warehouse (DWM)</option>
+            <option value="SE">Software Engineering (SE)</option>
+            <option value="SPCD">System Processing (SPCD)</option>
+            <option value="ALL">Global Search</option>
           </select>
         </div>
 
-        {/* Chat Area */}
-        <div className="chat-area">
+        {/* Chat Area - Animated Entrance */}
+        <div
+          className="chat-area animate-entrance"
+          style={{ animationDelay: "0.2s" }}
+        >
           {messages.map((msg, index) => (
             <div key={index} className={`message ${msg.sender}`}>
-              {/* Markdown Response */}
               <div>
                 <ReactMarkdown>{msg.text}</ReactMarkdown>
               </div>
 
-              {/* Source PDF Link */}
+              {/* Source Link */}
               {msg.source && (
-                <div
-                  className="mt-3 pt-3 border-top"
-                  style={{ borderColor: "rgba(0,0,0,0.1)" }}
-                >
-                  <small className="text-muted fw-bold d-flex align-items-center gap-2">
-                    <svg
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
-                    </svg>
-                    Source:{" "}
+                <div className="mt-3 pt-2 border-top">
+                  <small className="text-muted fw-bold">
+                    📖 Source:{" "}
                     <a
                       href={`http://localhost:3000/api/insight/pdf/${msg.source}`}
                       target="_blank"
@@ -248,56 +257,50 @@ export default function InsightVIT() {
                 </div>
               )}
 
-              {/* YouTube Recommendation */}
-              {msg.sender === "bot" && msg.video && (
-                <div className="video-card">
-                  <a
-                    href={msg.video.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-decoration-none"
-                  >
-                    <img
-                      src={msg.video.thumbnail}
-                      alt="Video Thumbnail"
-                      className="video-thumb"
-                    />
-                    <div className="video-content">
-                      <span className="video-label">📺 Recommended Watch</span>
-                      <p className="video-title">{msg.video.title}</p>
-                    </div>
-                  </a>
+              {/* YouTube Video */}
+              {msg.video && (
+                <div
+                  className="video-card"
+                  onClick={() => window.open(msg.video.url, "_blank")}
+                >
+                  <img
+                    src={msg.video.thumbnail}
+                    className="video-thumb"
+                    alt="video"
+                  />
+                  <div className="video-title">▶ {msg.video.title}</div>
                 </div>
               )}
             </div>
           ))}
-
           {loading && (
-            <div className="message bot">
-              <span className="spinner-border spinner-border-sm text-primary me-2"></span>
-              {subject === "ALL"
-                ? "Searching all documents..."
-                : `Consulting ${subject} syllabus...`}
+            <div className="message bot text-muted">
+              <span
+                className="spinner-border spinner-border-sm me-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+              Analyzing syllabus...
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="input-area">
+        {/* Input Area - Animated Entrance */}
+        <div
+          className="input-area animate-entrance"
+          style={{ animationDelay: "0.3s" }}
+        >
           <input
-            type="text"
             className="form-control"
-            placeholder={`Ask about ${subject === "ALL" ? "anything" : subject}...`}
+            placeholder={`Ask a question about ${subject}...`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             disabled={loading}
           />
           <button className="btn-send" onClick={handleSend} disabled={loading}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
+            ➤
           </button>
         </div>
       </div>
