@@ -24,7 +24,8 @@ import mongoose from "mongoose"; // <--- 1. NEW: Mongoose
 import careerRoutes from "./routes/career.route.js";
 import insightRoutes from "./routes/insight.route.js";
 import mockRoutes from "./routes/mock.route.js";
-import authRoutes from "./routes/auth.route.js"; // <--- 2. NEW: Auth Route
+import authRoutes from "./routes/auth.route.js"; 
+import resumeRoutes from "./routes/resume.route.js";
 
 import { loadInsightDocuments } from "./services/insightLoader.service.js";
 
@@ -72,6 +73,7 @@ app.use("/api/auth", authRoutes); // <--- 3. NEW: Auth Endpoint
 app.use("/api/career", careerRoutes);
 app.use("/api/insight", insightRoutes);
 app.use("/api/mock", mockRoutes);
+app.use("/api/resume", resumeRoutes);
 
 // ================================
 // 🏠 HEALTH CHECK

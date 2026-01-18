@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [liveStats, setLiveStats] = useState({
     totalInterviews: 0,
     history: [],
+    graphData: [60, 60, 60, 60, 60], // Default baseline
     loading: true,
   });
 
@@ -25,7 +26,28 @@ export default function Dashboard() {
         email: "guest@vorbit.com",
         photoURL: null,
       });
-      fetchHistory();
+      // Mock data for guest to see features
+      setLiveStats({
+        totalInterviews: 5,
+        history: [
+          {
+            role: "React Dev",
+            date: new Date().toISOString(),
+            score: 85,
+            sentiment: 2.5,
+            fillers: 1,
+          },
+          {
+            role: "System Design",
+            date: new Date().toISOString(),
+            score: 62,
+            sentiment: -1.0,
+            fillers: 8,
+          },
+        ],
+        graphData: [60, 65, 62, 78, 85],
+        loading: false,
+      });
       return;
     }
 
@@ -43,36 +65,27 @@ export default function Dashboard() {
   const fetchHistory = async () => {
     try {
       const res = await axios.get("http://localhost:3000/api/mock/history");
+
+      // Prepare Graph Data: Extract scores and reverse them (Oldest -> Newest)
+      // If no history, default to flat line
+      const scores =
+        res.data.history.length > 0
+          ? res.data.history.map((h) => h.score).reverse()
+          : [60, 60, 60, 60, 60];
+
       setLiveStats({
         totalInterviews: res.data.totalInterviews,
         history: res.data.history,
+        graphData: scores,
         loading: false,
       });
     } catch (err) {
-      // Fallback mock data
-      setLiveStats({
-        totalInterviews: 12,
-        history: [
-          {
-            role: "React Developer",
-            date: new Date().toISOString(),
-            score: 85,
-          },
-          {
-            role: "System Architect",
-            date: new Date().toISOString(),
-            score: 78,
-          },
-        ],
-        loading: false,
-      });
+      console.error("Dashboard Fetch Error", err);
+      setLiveStats((prev) => ({ ...prev, loading: false }));
     }
   };
 
-  // Graph Data (Static for visuals, but animated)
-  const graphPoints = [60, 65, 70, 68, 75, 82, 85];
-
-  // --- STYLES (Restored from MockInterview.jsx for consistency) ---
+  // --- STYLES (Restored exact UI) ---
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -94,7 +107,7 @@ export default function Dashboard() {
 
       .animate-entrance { animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
 
-      /* --- SIDEBAR (Exact Match) --- */
+      /* --- SIDEBAR --- */
       .sidebar-container { background: var(--color-primary); height: 100vh; width: 280px; position: fixed; top: 0; left: 0; display: flex; flex-direction: column; color: white; z-index: 1000; box-shadow: 4px 0 15px rgba(0, 33, 71, 0.15); }
       .sidebar-header { padding: 2.5rem 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
       .sidebar-title { color: var(--color-accent); font-weight: 700; letter-spacing: 1.5px; font-size: 1.6rem; text-transform: uppercase; margin: 0; }
@@ -226,7 +239,7 @@ export default function Dashboard() {
         </div>
 
         <div className="row g-4">
-          {/* 1. LIVE GRAPH (Scanning Effect) */}
+          {/* 1. LIVE GRAPH (Confidence Trend - NLP DATA) */}
           <div
             className="col-12 col-xl-6 animate-entrance"
             style={{ animationDelay: "0.2s" }}
@@ -234,9 +247,9 @@ export default function Dashboard() {
             <div className="card custom-card p-4">
               <div className="card-body d-flex flex-column h-100">
                 <h5 className="card-header-custom">
-                  Resume Performance
+                  Confidence Trend
                   <span className="badge bg-light text-dark border">
-                    Live Data
+                    NLP Analysis
                   </span>
                 </h5>
 
@@ -274,10 +287,13 @@ export default function Dashboard() {
                     <path
                       d={
                         `M0 150 ` +
-                        graphPoints
-                          .map((s, i) => `L${i * 50} ${150 - s}`)
+                        liveStats.graphData
+                          .map(
+                            (s, i) =>
+                              `L${i * (300 / (liveStats.graphData.length - 1))} ${150 - s}`,
+                          )
                           .join(" ") +
-                        ` L${(graphPoints.length - 1) * 50} 150 Z`
+                        ` L300 150 Z`
                       }
                       fill="url(#liveGradient)"
                       style={{ transition: "all 0.5s ease" }}
@@ -286,9 +302,12 @@ export default function Dashboard() {
                     {/* The Line */}
                     <path
                       d={
-                        `M0 ${150 - graphPoints[0]} ` +
-                        graphPoints
-                          .map((s, i) => `L${i * 50} ${150 - s}`)
+                        `M0 ${150 - liveStats.graphData[0]} ` +
+                        liveStats.graphData
+                          .map(
+                            (s, i) =>
+                              `L${i * (300 / (liveStats.graphData.length - 1))} ${150 - s}`,
+                          )
                           .join(" ")
                       }
                       fill="none"
@@ -300,19 +319,23 @@ export default function Dashboard() {
                     />
 
                     {/* The Points */}
-                    {graphPoints.map((s, i) => (
+                    {liveStats.graphData.map((s, i) => (
                       <circle
                         key={i}
-                        cx={i * 50}
+                        cx={i * (300 / (liveStats.graphData.length - 1))}
                         cy={150 - s}
-                        r={i === graphPoints.length - 1 ? 6 : 4} // Last one bigger
+                        r={i === liveStats.graphData.length - 1 ? 6 : 4}
                         fill={
-                          i === graphPoints.length - 1 ? "#D4AF37" : "white"
+                          i === liveStats.graphData.length - 1
+                            ? "#D4AF37"
+                            : "white"
                         }
                         stroke="#002147"
                         strokeWidth="2"
                         className={
-                          i === graphPoints.length - 1 ? "live-dot-pulse" : ""
+                          i === liveStats.graphData.length - 1
+                            ? "live-dot-pulse"
+                            : ""
                         }
                         style={{
                           transition: "all 0.3s ease",
@@ -326,7 +349,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 2. RECENT ACTIVITY (Real Backend Data) */}
+          {/* 2. RECENT ACTIVITY (Real NLP Data) */}
           <div
             className="col-12 col-xl-6 animate-entrance"
             style={{ animationDelay: "0.3s" }}
@@ -365,22 +388,36 @@ export default function Dashboard() {
                     liveStats.history.map((item, index) => (
                       <div key={index} className="activity-item">
                         <div className="d-flex align-items-center gap-3">
+                          {/* Sentiment Icon */}
                           <div
                             className="rounded-circle d-flex align-items-center justify-content-center"
                             style={{
-                              width: "35px",
-                              height: "35px",
-                              background: "#E2E8F0",
-                              color: "#002147",
+                              width: "40px",
+                              height: "40px",
+                              background:
+                                item.sentiment && item.sentiment > 0
+                                  ? "#d4edda"
+                                  : "#f8d7da",
+                              color:
+                                item.sentiment && item.sentiment > 0
+                                  ? "#155724"
+                                  : "#721c24",
+                              fontWeight: "bold",
+                              fontSize: "1.2rem",
                             }}
                           >
-                            {/* Icon based on score */}
-                            {item.score > 80 ? "🔥" : "📝"}
+                            {item.sentiment && item.sentiment > 0 ? "😊" : "😐"}
                           </div>
                           <div>
                             <div className="activity-role">{item.role}</div>
                             <div className="activity-date">
                               {new Date(item.date).toLocaleDateString()}
+                              {/* Display Fillers if available */}
+                              {item.fillers !== undefined && (
+                                <span className="ms-2 badge bg-light text-dark border">
+                                  {item.fillers} Fillers
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -391,7 +428,7 @@ export default function Dashboard() {
                               color: item.score >= 80 ? "#28a745" : "#D4AF37",
                             }}
                           >
-                            {item.score}
+                            {item.score}%
                           </div>
                           <div
                             style={{
@@ -401,7 +438,7 @@ export default function Dashboard() {
                               opacity: 0.6,
                             }}
                           >
-                            Score
+                            Confidence
                           </div>
                         </div>
                       </div>

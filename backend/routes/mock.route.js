@@ -3,6 +3,7 @@ import fs from "fs";
 import pdfParse from "pdf-parse";
 import Groq from "groq-sdk";
 import * as googleTTS from "google-tts-api";
+import Sentiment from "sentiment"; // <--- NEW IMPORT
 import { Interview } from "../models/Interview.js";
 import { upload } from "../upload.middleware.js"; 
 import dotenv from "dotenv";
@@ -11,11 +12,11 @@ dotenv.config();
 
 const router = express.Router();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const sentiment = new Sentiment(); // <--- Initialize Sentiment
 
 // --- Helper: Generate Audio URL ---
 const getAudioUrl = (text) => {
   try {
-    // google-tts-api limit: ~200 chars. We truncate safely.
     const safeText = text.length > 200 ? text.substring(0, 200) + "..." : text;
     return googleTTS.getAudioUrl(safeText, {
       lang: "en",
@@ -34,16 +35,15 @@ router.post("/start", upload.single("resume"), async (req, res) => {
     const { role, difficulty, totalQuestions } = req.body;
     let resumeText = "";
 
-    // A. Extract Resume Text (if uploaded)
+    // A. Extract Resume Text
     if (req.file) {
       const pdfBuffer = fs.readFileSync(req.file.path);
       const pdfData = await pdfParse(pdfBuffer);
       resumeText = pdfData.text.replace(/\s+/g, " ").trim();
-      fs.unlinkSync(req.file.path); // Cleanup temp file
+      fs.unlinkSync(req.file.path); // Cleanup
     }
 
-    // B. Generate Question 1 (SKILL FOCUSED)
-    // We explicitly tell the AI to look at the resume context.
+    // B. Generate Question 1
     const prompt = `
       You are a technical interviewer for a ${role} position.
       Difficulty: ${difficulty}.
@@ -52,9 +52,9 @@ router.post("/start", upload.single("resume"), async (req, res) => {
       ${resumeText.substring(0, 3000)}
 
       TASK:
-      Identify a key TECHNICAL SKILL from the resume (e.g., React, Python, SQL, Java).
+      Identify a key TECHNICAL SKILL from the resume (e.g., React, Python, SQL).
       Ask a specific technical question about that skill.
-      Output ONLY the question text. Do not include introductory phrases like "Here is a question".
+      Output ONLY the question text.
     `;
 
     const completion = await groq.chat.completions.create({
@@ -64,20 +64,18 @@ router.post("/start", upload.single("resume"), async (req, res) => {
 
     const question = completion.choices[0].message.content.replace(/^"|"$/g, '').trim();
 
-    // C. Save Session to MongoDB
-    // We store 'resumeContext' so we can reuse it for Question 2 (Project Based)
+    // C. Save Session
     const newInterview = new Interview({
       role,
       difficulty,
       totalQuestions: parseInt(totalQuestions) || 3,
       currentQuestionIndex: 1,
-      resumeContext: resumeText, // <--- Important: Saving context for next Qs
+      resumeContext: resumeText,
       history: [{ question, userAnswer: "", feedback: "", score: 0 }]
     });
     
     await newInterview.save();
 
-    // D. Respond to Frontend
     res.json({
       interviewId: newInterview._id,
       question,
@@ -91,32 +89,57 @@ router.post("/start", upload.single("resume"), async (req, res) => {
   }
 });
 
-// --- 2. SUBMIT ANSWER & GET NEXT QUESTION (LOGIC BRANCHING) ---
+// --- 2. SUBMIT ANSWER & NEXT QUESTION (WITH NLP ANALYSIS) ---
 router.post("/answer", async (req, res) => {
   try {
     const { interviewId, answer } = req.body;
-    
     const interview = await Interview.findById(interviewId);
+    
     if (!interview) return res.status(404).json({ error: "Session not found" });
 
-    // A. Save User's Answer
+    // --- NLP ANALYSIS LOGIC ---
+    // 1. Detect Filler Words (um, uh, like, etc.)
+    const fillers = (answer.match(/\b(um|uh|like|basically|actually|literally)\b/gi) || []).length;
+    
+    // 2. Analyze Sentiment (Score: -5 to +5)
+    const sentimentResult = sentiment.analyze(answer);
+    const sentimentScore = sentimentResult.score;
+
+    // 3. Calculate Confidence Level
+    // Simple Heuristic: High sentiment & low fillers = High Confidence
+    let confidence = "Neutral";
+    if (sentimentScore > 1 && fillers < 2) confidence = "High";
+    else if (sentimentScore < 0 || fillers > 3) confidence = "Low";
+
+    // 4. Update the current history entry
     const currentIndex = interview.currentQuestionIndex - 1;
     if (interview.history[currentIndex]) {
       interview.history[currentIndex].userAnswer = answer;
+      interview.history[currentIndex].fillerCount = fillers;
+      interview.history[currentIndex].sentimentScore = sentimentScore;
+      interview.history[currentIndex].confidence = confidence;
     }
 
-    // B. Check if Interview is Complete
+    // --- END INTERVIEW CHECK ---
     if (interview.currentQuestionIndex >= interview.totalQuestions) {
-      // Generate Final Feedback
+      
+      // Create a summary stats for the AI Prompt
+      const totalFillers = interview.history.reduce((acc, curr) => acc + (curr.fillerCount || 0), 0);
+      const avgSentiment = interview.history.reduce((acc, curr) => acc + (curr.sentimentScore || 0), 0) / interview.totalQuestions;
+
       const feedbackPrompt = `
-        You are a Senior Hiring Manager.
+        You are a Hiring Manager.
         Role: ${interview.role}
         
-        Review the interview answers. Provide a concise Hiring Recommendation.
+        Candidate Speech Analysis:
+        - Total Filler Words Used: ${totalFillers}
+        - Average Sentiment Score: ${avgSentiment.toFixed(1)} (Positive > 0, Negative < 0)
+        
+        Review the interview answers below. Provide a Hiring Recommendation.
         Strictly format as:
-        1. Key Strengths
-        2. Areas for Improvement
-        3. Decision (Hire/No Hire)
+        1. Technical Analysis
+        2. Communication Style (Reference the fillers/sentiment)
+        3. Final Decision (Hire/No Hire)
       `;
 
       const completion = await groq.chat.completions.create({
@@ -127,43 +150,32 @@ router.post("/answer", async (req, res) => {
       const finalFeedback = completion.choices[0].message.content;
       interview.save(); // Save final state
       
-      return res.json({
-        isLast: true,
-        message: "Interview Complete!",
-        feedback: finalFeedback
-      });
+      return res.json({ isLast: true, feedback: finalFeedback, message: "Interview Complete!" });
     }
 
-    // C. Generate NEXT Question (The Logic Branching)
+    // --- GENERATE NEXT QUESTION ---
     const nextIndex = interview.currentQuestionIndex + 1;
     let nextPrompt = "";
 
     if (nextIndex === 2) {
-      // --- Q2: PROJECT BASED ---
-      // Uses the stored resume context to find a project
+      // Q2: Project Based
       const resumeSnippet = interview.resumeContext || ""; 
-      
       nextPrompt = `
         You are interviewing for ${interview.role}.
-        RESUME CONTEXT: ${resumeSnippet.substring(0, 3000)}
+        RESUME: ${resumeSnippet.substring(0, 3000)}
         
         TASK:
-        Find a specific PROJECT mentioned in the resume.
-        Ask a deep technical question about that project.
-        Examples: "What was the most challenging bug in [Project]?" or "How did you implement authentication in [Project]?"
-        Output ONLY the question text.
+        Find a PROJECT mentioned in the resume.
+        Ask a specific question about that project (e.g., "Tell me about the challenges you faced in [Project Name]").
+        Output ONLY the question.
       `;
     } else {
-      // --- Q3+: DSA / SYSTEM DESIGN / GENERAL ---
-      // For Q3 and beyond, we switch to general technical competency
+      // Q3+: DSA / General
       nextPrompt = `
-        You are interviewing for a ${interview.role} role.
-        Difficulty: ${interview.difficulty}.
-        
+        You are interviewing for ${interview.role}.
         TASK:
-        Ask a fundamental Data Structures & Algorithms (DSA) question OR a System Design question.
-        Ensure it is appropriate for the difficulty level.
-        Output ONLY the question text.
+        Ask a Data Structures & Algorithms (DSA) or System Design question appropriate for ${interview.difficulty} level.
+        Output ONLY the question.
       `;
     }
 
@@ -174,12 +186,11 @@ router.post("/answer", async (req, res) => {
 
     const nextQ = completion.choices[0].message.content.replace(/^"|"$/g, '').trim();
 
-    // D. Update DB with New Question
+    // Push new question slot
     interview.history.push({ question: nextQ, userAnswer: "", feedback: "", score: 0 });
     interview.currentQuestionIndex += 1;
     await interview.save();
 
-    // E. Respond
     res.json({
       isLast: false,
       question: nextQ,
@@ -193,31 +204,41 @@ router.post("/answer", async (req, res) => {
   }
 });
 
-// --- 3. GET INTERVIEW HISTORY (FOR DASHBOARD) ---
+// --- 3. GET INTERVIEW HISTORY (WITH NLP STATS) ---
 router.get("/history", async (req, res) => {
   try {
-    // Fetch last 10 interviews, sorted by newest first
     const interviews = await Interview.find()
       .sort({ createdAt: -1 })
       .limit(10);
 
-    // Calculate total count
     const totalInterviews = await Interview.countDocuments();
     
-    // Transform for frontend
-    const history = interviews.map(i => ({
-      id: i._id,
-      role: i.role,
-      date: i.createdAt,
-      // Mock score logic (random 70-100) since we don't have numeric grading enabled yet
-      score: Math.floor(Math.random() * 30) + 70, 
-      questionsAnswered: i.history.length
-    }));
+    const history = interviews.map(i => {
+      // Calculate Average Metrics from History
+      const totalQs = i.history.length || 1;
+      const avgSentiment = i.history.reduce((acc, curr) => acc + (curr.sentimentScore || 0), 0) / totalQs;
+      const totalFillers = i.history.reduce((acc, curr) => acc + (curr.fillerCount || 0), 0);
 
-    res.json({
-      totalInterviews,
-      history
+      // AI Scoring Algorithm (0-100)
+      // Base: 70
+      // + Sentiment * 5 (Max +25)
+      // - Fillers * 2 (Max -20)
+      let calculatedScore = 70 + (avgSentiment * 5) - (totalFillers * 2);
+      
+      // Clamp Score between 0 and 100
+      calculatedScore = Math.min(Math.max(calculatedScore, 10), 100);
+
+      return {
+        id: i._id,
+        role: i.role,
+        date: i.createdAt,
+        score: Math.round(calculatedScore), 
+        sentiment: avgSentiment.toFixed(1), // Send sentiment for the graph
+        fillers: totalFillers
+      };
     });
+
+    res.json({ totalInterviews, history });
 
   } catch (error) {
     console.error("❌ History Error:", error);
