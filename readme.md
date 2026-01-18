@@ -1,6 +1,6 @@
 # 🚀 V-Orbit: The AI-Native Engineering Ecosystem
 
-**The Gold Standard for Engineers.**
+**The Gold Standard for Students of VIT.**
 V-Orbit is a deep-tech platform that bridges the gap between academic learning and industry readiness. Unlike standard wrappers, V-Orbit is a fully integrated ecosystem powered by **Computer Vision, NLP, Hybrid RAG (Retrieval-Augmented Generation), and Google Cloud**.
 
 ---
