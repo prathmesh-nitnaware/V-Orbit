@@ -12,6 +12,7 @@
     "axios": "^1.13.2",
     "bootstrap": "^5.3.2",
     "face-api.js": "^0.22.2",
+    "framer-motion": "^12.27.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",

@@ -1,11 +1,32 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion"; // <--- Import Framer Motion
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Landing() {
   const navigate = useNavigate();
 
-  // --- Styles Injection ---
+  // --- Animation Variants ---
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: "easeOut" },
+    },
+  };
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  // --- Styles Injection (Kept your core styling) ---
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -24,18 +45,7 @@ export default function Landing() {
         overflow-x: hidden;
       }
 
-      /* --- ANIMATIONS --- */
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      .animate-entrance {
-        animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        opacity: 0;
-      }
-
-      /* --- NAVBAR --- */
+      /* Navbar */
       .landing-nav {
         padding: 1.5rem 0;
         position: absolute;
@@ -53,33 +63,34 @@ export default function Landing() {
         text-decoration: none;
       }
 
-      /* --- HERO SECTION --- */
+      /* Hero Section */
       .hero-section {
-        background-color: var(--color-primary);
-        color: var(--color-white);
-        padding: 8rem 0 6rem;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #F8FAFC 0%, #E6EEF5 100%);
         position: relative;
         overflow: hidden;
-        border-bottom-right-radius: 80px; /* Modern asymmetrical design */
       }
 
-      /* Subtle background accent */
-      .hero-section::before {
-        content: '';
+      /* Abstract Background Shapes */
+      .hero-bg-blob {
         position: absolute;
-        top: -50%;
-        right: -10%;
         width: 600px;
         height: 600px;
-        background: radial-gradient(circle, rgba(212,175,55,0.1) 0%, rgba(0,33,71,0) 70%);
+        background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, rgba(0,33,71,0) 70%);
         border-radius: 50%;
+        top: -20%;
+        right: -10%;
+        z-index: 0;
       }
 
       .hero-title {
-        font-size: 3.5rem;
+        font-size: 4rem;
         font-weight: 800;
-        margin-bottom: 1rem;
-        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
+        color: var(--color-primary);
       }
 
       .hero-title span {
@@ -88,106 +99,69 @@ export default function Landing() {
 
       .hero-lead {
         font-size: 1.25rem;
-        color: #B0C4DE; /* Light steel blue for readability */
+        color: var(--color-secondary);
         margin-bottom: 2.5rem;
-        max-width: 600px;
+        max-width: 550px;
+        line-height: 1.6;
       }
 
-      /* --- BUTTONS --- */
+      /* Buttons */
       .btn-gold {
         background-color: var(--color-accent);
         color: var(--color-primary);
         font-weight: 800;
         border: none;
         padding: 1rem 2.5rem;
-        border-radius: 8px;
+        border-radius: 50px;
         letter-spacing: 1px;
         text-transform: uppercase;
-        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
         text-decoration: none;
         display: inline-block;
       }
 
-      .btn-gold:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
+      .btn-outline {
+        border: 2px solid var(--color-primary);
         color: var(--color-primary);
-      }
-
-      .btn-outline-light-custom {
-        border: 2px solid rgba(255,255,255,0.3);
-        color: white;
         font-weight: 700;
         padding: 0.9rem 2rem;
-        border-radius: 8px;
+        border-radius: 50px;
         margin-left: 1rem;
-        transition: all 0.2s;
+        background: transparent;
       }
 
-      .btn-outline-light-custom:hover {
-        border-color: var(--color-white);
-        background-color: rgba(255,255,255,0.1);
-        color: white;
-      }
-
-      /* --- FEATURES SECTION --- */
-      .features-section {
-        padding: 5rem 0;
-      }
-
+      /* Features */
       .feature-card {
         background: white;
         padding: 2.5rem;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border-radius: 20px;
+        box-shadow: 0 15px 40px rgba(0,33,71,0.05);
         height: 100%;
-        transition: transform 0.3s ease;
-        border-top: 4px solid var(--color-primary);
-      }
-
-      .feature-card:hover {
-        transform: translateY(-10px);
+        border-bottom: 4px solid var(--color-accent);
+        transition: all 0.3s;
       }
 
       .feature-icon {
-        width: 60px;
-        height: 60px;
+        width: 64px;
+        height: 64px;
         background-color: #F0F4F8;
-        border-radius: 12px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 1.5rem;
         color: var(--color-primary);
+        font-size: 1.5rem;
       }
 
-      .feature-title {
-        color: var(--color-primary);
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-      }
+      .feature-title { color: var(--color-primary); font-weight: 700; margin-bottom: 0.8rem; }
+      .feature-text { color: var(--color-secondary); font-size: 0.95rem; line-height: 1.6; }
 
-      .feature-text {
-        color: var(--color-secondary);
-        font-size: 0.95rem;
-      }
-
-      /* --- FOOTER --- */
-      .landing-footer {
-        text-align: center;
-        padding: 3rem 0;
-        color: var(--color-secondary);
-        font-size: 0.9rem;
-        border-top: 1px solid #E2E8F0;
-      }
-
-      /* Responsive */
-      @media (max-width: 768px) {
-        .hero-title { font-size: 2.5rem; }
-        .hero-section { text-align: center; padding-top: 6rem; }
-        .hero-lead { margin-left: auto; margin-right: auto; }
-        .btn-outline-light-custom { margin-left: 0; margin-top: 1rem; display: block; width: 100%; }
-        .btn-gold { display: block; width: 100%; }
+      @media (max-width: 992px) {
+        .hero-section { padding-top: 8rem; text-align: center; display: block; }
+        .hero-lead { margin: 0 auto 2rem auto; }
+        .hero-title { font-size: 3rem; }
+        .btn-outline { margin-left: 0; margin-top: 1rem; }
       }
     `;
     document.head.appendChild(style);
@@ -197,198 +171,266 @@ export default function Landing() {
   return (
     <div>
       {/* Navbar */}
-      <nav className="landing-nav">
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="landing-nav"
+      >
         <div className="container d-flex justify-content-between align-items-center">
-          <span className="nav-brand" style={{ color: "white" }}>
-            V-Orbit
-          </span>
+          <span className="nav-brand">V-Orbit</span>
           <div>
             <button
-              className="btn btn-sm text-white fw-bold me-3"
+              className="btn btn-sm text-secondary fw-bold me-3"
               onClick={() => navigate("/login")}
             >
               Log In
             </button>
             <button
-              className="btn btn-sm bg-white text-dark fw-bold px-3 py-2 rounded"
-              onClick={() =>
-                navigate("/login")
-              } /* CHANGED: Direct to Login for Google Auth */
+              className="btn btn-sm text-white fw-bold px-4 py-2 rounded-pill"
+              style={{ background: "var(--color-primary)" }}
+              onClick={() => navigate("/login")}
             >
               Join Now
             </button>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Section */}
       <section className="hero-section">
-        <div className="container">
+        <div className="hero-bg-blob"></div>
+
+        <div className="container" style={{ position: "relative", zIndex: 2 }}>
           <div className="row align-items-center">
-            <div className="col-lg-7 animate-entrance">
-              <h1 className="hero-title">
-                Orbiting Towards <br />
-                <span>Career Success.</span>
-              </h1>
-              <p className="hero-lead">
-                The comprehensive placement and academic readiness platform
-                exclusively for VIT students. Master your interviews, optimize
-                your resume, and query academic docs with AI.
-              </p>
-              <div className="d-flex flex-wrap">
-                <button className="btn-gold" onClick={() => navigate("/login")}>
-                  {" "}
-                  {/* CHANGED: Direct to Login */}
-                  Get Started
-                </button>
-                <button
-                  className="btn-outline-light-custom"
+            {/* Left: Text Content */}
+            <motion.div
+              className="col-lg-6"
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+            >
+              <motion.div variants={fadeInUp}>
+                <span className="badge bg-light text-primary border border-primary px-3 py-2 rounded-pill mb-3 fw-bold">
+                  ★ The Gold Standard for VITians
+                </span>
+              </motion.div>
+
+              <motion.h1 className="hero-title" variants={fadeInUp}>
+                Master Your <br />
+                <span>Engineering Arc.</span>
+              </motion.h1>
+
+              <motion.p className="hero-lead" variants={fadeInUp}>
+                The first AI-native platform bridging academic theory with
+                industry reality. Experience <b>Computer Vision Proctoring</b>,{" "}
+                <b>Hybrid RAG Syllabus Search</b>, and{" "}
+                <b>Holographic Resume Scoring</b>.
+              </motion.p>
+
+              <motion.div variants={fadeInUp}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="btn-gold"
                   onClick={() => navigate("/login")}
                 >
-                  Sign In
-                </button>
-              </div>
-            </div>
+                  Launch Console
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="btn-outline"
+                  onClick={() => navigate("/login")}
+                >
+                  Login
+                </motion.button>
+              </motion.div>
+            </motion.div>
 
-            {/* Visual Abstract / Illustration Placeholder */}
-            <div
-              className="col-lg-5 d-none d-lg-block animate-entrance"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div
+            {/* Right: Visual Abstract (Animated Orbit) */}
+            <div className="col-lg-6 d-none d-lg-block">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1 }}
                 style={{
                   width: "100%",
-                  height: "400px",
-                  background: "rgba(255,255,255,0.05)",
-                  borderRadius: "20px",
-                  backdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  height: "500px",
                   position: "relative",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <div
+                {/* Central Core */}
+                <motion.div
+                  animate={{ y: [0, -20, 0] }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                   style={{
-                    width: "150px",
-                    height: "150px",
+                    width: "180px",
+                    height: "180px",
+                    background: "var(--color-primary)",
                     borderRadius: "50%",
-                    background: "#D4AF37",
-                    boxShadow: "0 0 60px rgba(212,175,55,0.4)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    boxShadow: "0 20px 50px rgba(0,33,71,0.3)",
+                    zIndex: 2,
+                    color: "#D4AF37",
+                    fontSize: "4rem",
+                    fontWeight: "800",
                   }}
                 >
-                  <span
-                    style={{
-                      color: "#002147",
-                      fontWeight: "800",
-                      fontSize: "3rem",
-                    }}
-                  >
-                    V
-                  </span>
-                </div>
-                {/* Orbit ring */}
-                <div
+                  V
+                </motion.div>
+
+                {/* Orbit Rings */}
+                <motion.div
                   style={{
                     position: "absolute",
-                    width: "280px",
-                    height: "280px",
-                    border: "2px dashed rgba(255,255,255,0.2)",
+                    width: "350px",
+                    height: "350px",
+                    border: "2px dashed #D4AF37",
                     borderRadius: "50%",
-                    animation: "spin 10s linear infinite",
+                    zIndex: 1,
                   }}
-                ></div>
-              </div>
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  {/* Planet 1 */}
+                  <div
+                    style={{
+                      width: "20px",
+                      height: "20px",
+                      background: "#D4AF37",
+                      borderRadius: "50%",
+                      position: "absolute",
+                      top: "0",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  ></div>
+                </motion.div>
+
+                <motion.div
+                  style={{
+                    position: "absolute",
+                    width: "500px",
+                    height: "500px",
+                    border: "1px solid rgba(0,33,71,0.1)",
+                    borderRadius: "50%",
+                    zIndex: 0,
+                  }}
+                  animate={{ rotate: -360 }}
+                  transition={{
+                    duration: 30,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  {/* Planet 2 */}
+                  <div
+                    style={{
+                      width: "30px",
+                      height: "30px",
+                      background: "#002147",
+                      borderRadius: "50%",
+                      position: "absolute",
+                      bottom: "20%",
+                      right: "10%",
+                    }}
+                  ></div>
+                </motion.div>
+              </motion.div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
-      <section className="features-section container">
+      <section className="container" style={{ padding: "6rem 0" }}>
+        <motion.div
+          className="text-center mb-5"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h6
+            style={{
+              color: "var(--color-accent)",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              letterSpacing: "2px",
+            }}
+          >
+            Deep Tech Features
+          </h6>
+          <h2
+            style={{
+              color: "var(--color-primary)",
+              fontWeight: "800",
+              fontSize: "2.5rem",
+            }}
+          >
+            Built for the Future of Engineering
+          </h2>
+        </motion.div>
+
         <div className="row g-4">
-          {/* Feature 1 */}
-          <div
-            className="col-md-4 animate-entrance"
-            style={{ animationDelay: "0.3s" }}
-          >
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                >
-                  <path d="M6 12.796V3.204L11.481 8 6 12.796zm.659.753 5.48-4.796a1 1 0 0 0 0-1.506L6.66 2.451C6.011 1.885 5 2.345 5 3.204v9.592a1 1 0 0 0 1.659.753z" />
-                </svg>
-              </div>
-              <h4 className="feature-title">Mock-V</h4>
-              <p className="feature-text">
-                AI-driven mock interviews tailored to specific job roles and
-                difficulties. Get instant feedback on your answers.
-              </p>
+          {[
+            {
+              title: "Mock-V (Proctoring)",
+              text: "Browser-based Computer Vision detects user presence and focus. NLP algorithms analyze speech sentiment and filler words in real-time.",
+              icon: "🎥",
+            },
+            {
+              title: "Insight-VIT (RAG)",
+              text: "Hybrid RAG engine connected to Google Cloud. Semantic search over university syllabus PDFs powered by Gemini Embeddings.",
+              icon: "🧠",
+            },
+            {
+              title: "Resume Scorer",
+              text: "Generates a Holographic Skill Graph (Radar Chart) to visualize your fit against JDs. Optimized for ATS parsing.",
+              icon: "📊",
+            },
+          ].map((feature, i) => (
+            <div className="col-md-4" key={i}>
+              <motion.div
+                className="feature-card"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                whileHover={{ y: -10 }}
+              >
+                <div className="feature-icon">{feature.icon}</div>
+                <h4 className="feature-title">{feature.title}</h4>
+                <p className="feature-text">{feature.text}</p>
+              </motion.div>
             </div>
-          </div>
-
-          {/* Feature 2 */}
-          <div
-            className="col-md-4 animate-entrance"
-            style={{ animationDelay: "0.4s" }}
-          >
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                >
-                  <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
-                </svg>
-              </div>
-              <h4 className="feature-title">Resume Scorer</h4>
-              <p className="feature-text">
-                Beat the ATS. Upload your PDF and compare it against job
-                descriptions to identify missing keywords and skills.
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 3 */}
-          <div
-            className="col-md-4 animate-entrance"
-            style={{ animationDelay: "0.5s" }}
-          >
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                >
-                  <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z" />
-                </svg>
-              </div>
-              <h4 className="feature-title">Insight-VIT</h4>
-              <p className="feature-text">
-                Your Academic Oracle. Query official VIT documents and syllabus
-                PDFs to get precise answers instantly.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="landing-footer">
+      <footer
+        className="landing-footer text-center py-5"
+        style={{ borderTop: "1px solid #eee", color: "#708090" }}
+      >
         <div className="container">
-          <p>© 2026 V-Orbit. Built for VITians, Powered by AI.</p>
+          <p className="mb-0">
+            © 2026 V-Orbit. The Gold Standard for Engineers.
+          </p>
+          <small>Powered by Google Cloud • Gemini • Llama 3</small>
         </div>
       </footer>
     </div>
