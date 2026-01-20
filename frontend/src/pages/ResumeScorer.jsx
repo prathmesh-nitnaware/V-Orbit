@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import config from "../utils/config"; // <--- ADDED THIS IMPORT
 import {
   Radar,
   RadarChart,
@@ -47,9 +48,9 @@ export default function ResumeScorer() {
     formData.append("jobDescription", jobDescription);
 
     try {
-      // Ensure backend route matches (api/resume/score)
+      // UPDATED: Use dynamic URL from config
       const res = await axios.post(
-        "http://localhost:3000/api/resume/score",
+        `${config.API_BASE_URL}/api/resume/score`,
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },

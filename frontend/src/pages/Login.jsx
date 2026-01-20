@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import axios from "axios";
+import config from "../utils/config"; // <--- ADDED THIS IMPORT
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Login() {
@@ -21,8 +22,9 @@ export default function Login() {
 
       // Check Backend
       try {
+        // UPDATED: Use dynamic URL from config
         const res = await axios.post(
-          "http://localhost:3000/api/auth/google-login",
+          `${config.API_BASE_URL}/api/auth/google-login`,
           { email: user.email }
         );
 

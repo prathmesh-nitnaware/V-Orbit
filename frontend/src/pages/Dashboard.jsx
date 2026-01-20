@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import axios from "axios";
+import config from "../utils/config"; // <--- IMPORT CONFIG HERE
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Dashboard() {
@@ -64,7 +65,8 @@ export default function Dashboard() {
 
   const fetchHistory = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/mock/history");
+      // UPDATED: Use dynamic URL from config
+      const res = await axios.get(`${config.API_BASE_URL}/api/mock/history`);
 
       // Prepare Graph Data: Extract scores and reverse them (Oldest -> Newest)
       // If no history, default to flat line

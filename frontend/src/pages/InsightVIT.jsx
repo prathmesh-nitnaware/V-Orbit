@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import config from "../utils/config"; // <--- ADDED THIS IMPORT
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function InsightVIT() {
@@ -51,7 +52,8 @@ export default function InsightVIT() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/insight/ask", {
+      // UPDATED: Use dynamic URL from config
+      const res = await axios.post(`${config.API_BASE_URL}/api/insight/ask`, {
         subject,
         question: userMessage.text,
       });
@@ -246,7 +248,8 @@ export default function InsightVIT() {
                   <small className="text-muted fw-bold">
                     📖 Source:{" "}
                     <a
-                      href={`http://localhost:3000/api/insight/pdf/${msg.source}`}
+                      // UPDATED: Use dynamic URL from config
+                      href={`${config.API_BASE_URL}/api/insight/pdf/${msg.source}`}
                       target="_blank"
                       rel="noreferrer"
                       style={{ color: "#D4AF37" }}

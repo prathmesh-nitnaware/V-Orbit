@@ -4,6 +4,7 @@ import { auth, storage } from "../firebase"; // Import Firebase
 import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import axios from "axios"; // <--- Import Axios
+import config from "../utils/config"; // <--- ADDED THIS IMPORT
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Profile() {
@@ -38,8 +39,9 @@ export default function Profile() {
 
         try {
           // Fetch existing profile data from MongoDB
+          // UPDATED: Use dynamic URL
           const res = await axios.get(
-            `http://localhost:3000/api/auth/${currentUser.uid}`
+            `${config.API_BASE_URL}/api/auth/${currentUser.uid}`
           );
           const data = res.data;
 
@@ -84,7 +86,8 @@ export default function Profile() {
       setPhotoURL(url);
 
       // Update Backend (Save URL to MongoDB)
-      await axios.put(`http://localhost:3000/api/auth/update/${user.uid}`, {
+      // UPDATED: Use dynamic URL
+      await axios.put(`${config.API_BASE_URL}/api/auth/update/${user.uid}`, {
         profilePic: url,
       });
 
@@ -113,8 +116,9 @@ export default function Profile() {
     setLoading(true);
     try {
       // Send updated data to MongoDB
+      // UPDATED: Use dynamic URL
       await axios.put(
-        `http://localhost:3000/api/auth/update/${user.uid}`,
+        `${config.API_BASE_URL}/api/auth/update/${user.uid}`,
         formData
       );
       setSuccess(true);

@@ -4,6 +4,7 @@ import axios from "axios";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import * as faceapi from "face-api.js"; // <--- 1. IMPORT AI
+import config from "../utils/config"; // <--- ADDED THIS IMPORT
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function MockInterviewLive() {
@@ -167,7 +168,8 @@ export default function MockInterviewLive() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/mock/answer", {
+      // UPDATED: Use dynamic URL from config
+      const res = await axios.post(`${config.API_BASE_URL}/api/mock/answer`, {
         interviewId,
         answer,
       });

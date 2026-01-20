@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import config from "../utils/config"; // <--- ADDED THIS IMPORT
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Register() {
@@ -42,7 +43,8 @@ export default function Register() {
 
     try {
       // Send all details to MongoDB
-      await axios.post("http://localhost:3000/api/auth/register", formData);
+      // UPDATED: Use dynamic URL from config
+      await axios.post(`${config.API_BASE_URL}/api/auth/register`, formData);
 
       // Success -> Go to Dashboard
       navigate("/dashboard");
